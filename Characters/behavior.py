@@ -22,7 +22,7 @@ def analyze_battlefield(character, allies, enemies):
         allies_critical = []
         
         for ally in alive_allies:
-            hp_ratio = ally.hp / ally.max_hp
+            hp_ratio = ally.hp / ally.derived_stats.max_hp
             allies_hp_ratio.append(hp_ratio)
             
             if hp_ratio < 0.9:  # Ниже 90% HP
@@ -40,7 +40,7 @@ def analyze_battlefield(character, allies, enemies):
     strong_enemies = []
     
     for enemy in alive_enemies:
-        hp_ratio = enemy.hp / enemy.max_hp
+        hp_ratio = enemy.hp / enemy.derived_stats.max_hp
         enemies_hp_ratio.append(hp_ratio)
         
         if hp_ratio < 0.3:  # Слабые враги
@@ -51,7 +51,7 @@ def analyze_battlefield(character, allies, enemies):
     avg_enemies_hp = sum(enemies_hp_ratio) / len(enemies_hp_ratio) if enemies_hp_ratio else 1.0
     
     # Анализ энергии персонажа
-    energy_ratio = character.energy / character.max_energy if hasattr(character, 'energy') else 1.0
+    energy_ratio = character.energy / character.derived_stats.max_energy if hasattr(character, 'energy') else 1.0
     
     # Определяем приоритет действия
     action_priority = determine_action_priority(
@@ -240,9 +240,9 @@ def decide_action(character, allies, enemies):
     if _is_heal_ability(chosen_ability):
         # Для лечения выбираем самого раненого союзника
         if analysis['allies_critical']:
-            target = min(analysis['allies_critical'], key=lambda x: x.hp/x.max_hp)
+            target = min(analysis['allies_critical'], key=lambda x: x.hp/x.derived_stats.max_hp)
         elif analysis['allies_need_healing']:
-            target = min(analysis['allies_need_healing'], key=lambda x: x.hp/x.max_hp)
+            target = min(analysis['allies_need_healing'], key=lambda x: x.hp/x.derived_stats.max_hp)
         else:
             target = character  # Если некого лечить, лечим себя
     elif _is_rest_ability(chosen_ability):

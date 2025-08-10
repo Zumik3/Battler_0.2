@@ -14,7 +14,7 @@ class GameMechanics:
         # Базовый шанс уклонения 5%
         base_dodge = 0.05
         # Бонус к уклонению: +1% за каждые 2 единицы ловкости сверх 10
-        dex_bonus = max(0, (target.dexterity - 10) * 0.005) # +0.5% за каждую единицу dex > 10
+        dex_bonus = max(0, (target.stats.dexterity - 10) * 0.005) # +0.5% за каждую единицу dex > 10
         
         # Максимальный шанс уклонения 30%
         return min(0.30, base_dodge + dex_bonus)
@@ -29,7 +29,7 @@ class GameMechanics:
         # Базовый шанс крита 5%
         base_crit = 0.05
         # Бонус к криту: +1% за каждую единицу ловкости сверх 10
-        dex_bonus = max(0, (character.dexterity - 10) * 0.01)
+        dex_bonus = max(0, (character.stats.dexterity - 10) * 0.01)
         
         # Максимальный шанс крита 50%
         return min(0.50, base_crit + dex_bonus)
@@ -49,16 +49,23 @@ class GameMechanics:
     @staticmethod
     def calculate_armor_reduction(damage, armor):
         """
-        Рассчитывает снижение урона броней.
+        Рассчитывает снижение урона броней с плавной S-образной кривой.
         :param damage: Исходный урон
         :param armor: Показатель брони
         :return: Урон после снижения броней
         """
         if armor <= 0:
             return damage
-        # Формула снижения урона: урон * (1 - броня / (броня + 100))
-        reduction = armor / (armor + 100)
-        return damage * (1 - reduction)
+        
+        # S-образная кривая (сигмоид) для плавного масштабирования
+        # k - коэффициент крутизны кривой (меньше значение = более плавная кривая)
+        k = 0.03
+        armor_effectiveness = 1 / (1 + 2.718 ** (-k * (armor - 50)))  # Сигмоид с центром в 50
+        # Ограничиваем эффективность (максимум 85% блокировки)
+        armor_effectiveness = min(armor_effectiveness, 0.85)
+        reduced_damage = damage * (1 - armor_effectiveness)
+        # Урон не может быть меньше 1
+        return max(1, int(reduced_damage))
     
     @staticmethod
     def check_dodge_with_message(attacker, target):
@@ -133,10 +140,10 @@ class GameMechanics:
         damage_after_variance = results['varied_damage'] * crit_multiplier
         
         # Применение брони
-        if hasattr(target, 'armor') and target.armor > 0:
+        defence = target.derived_stats.defense
+        if defence > 0:
             results['reduced_damage'] = GameMechanics.calculate_armor_reduction(
-                damage_after_variance, target.armor
-            )
+                damage_after_variance, defence)
         else:
             results['reduced_damage'] = damage_after_variance
         

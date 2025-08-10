@@ -7,8 +7,6 @@ class Tank(Character):
     BASE_STATS = {
         'constitution': 15,  # Высокое телосложение
         'strength': 14,      # Высокая сила
-        'attack': 8,
-        'defense': 15,
         'dexterity': 5,
         'intelligence': 6    # Низкий интеллект
     }
@@ -23,17 +21,7 @@ class Tank(Character):
     }
     
     def __init__(self, name, level=1):
-        scaled_stats = Character.scale_stats(self.BASE_STATS, level, self.GROWTH_RATES)
-        
-        super().__init__(
-            name=name,
-            role="tank",
-            hp=1,
-            max_hp=1,
-            level=level,
-            is_player=True,
-            **scaled_stats
-        )
+        super().__init__(name=name, role="tank", level=level, is_player=True)
 
 class Warrior(Character):
     """Класс Воина - сбалансированные характеристики."""
@@ -41,8 +29,6 @@ class Warrior(Character):
     BASE_STATS = {
         'constitution': 12,  # Среднее телосложение
         'strength': 16,      # Высокая сила
-        'attack': 20,
-        'defense': 8,
         'dexterity': 10,
         'intelligence': 8    # Низкий интеллект
     }
@@ -57,17 +43,7 @@ class Warrior(Character):
     }
     
     def __init__(self, name, level=1):
-        scaled_stats = Character.scale_stats(self.BASE_STATS, level, self.GROWTH_RATES)
-        
-        super().__init__(
-            name=name,
-            role="warrior",
-            hp=1,
-            max_hp=1,
-            level=level,
-            is_player=True,
-            **scaled_stats
-        )
+        super().__init__(name=name, role="warrior", level=level, is_player=True)
 
 class Rogue(Character):
     """Класс Разбойника - высокая ловкость, умеренный урон, низкая защита."""
@@ -75,8 +51,6 @@ class Rogue(Character):
     BASE_STATS = {
         'constitution': 8,   # Низкое телосложение
         'strength': 6,       # Низкая сила
-        'attack': 22,
-        'defense': 3,
         'dexterity': 18,     # Высокая ловкость
         'intelligence': 10   # Средний интеллект
     }
@@ -91,17 +65,7 @@ class Rogue(Character):
     }
     
     def __init__(self, name, level=1):
-        scaled_stats = Character.scale_stats(self.BASE_STATS, level, self.GROWTH_RATES)
-        
-        super().__init__(
-            name=name,
-            role="rogue",
-            hp=1,
-            max_hp=1,
-            level=level,
-            is_player=True,
-            **scaled_stats
-        )
+        super().__init__(name=name, role="rogue", level=level, is_player=True)
 
 class Archer(Character):
     """Класс Лучника - высокий урон, средняя ловкость, низкая защита."""
@@ -109,8 +73,6 @@ class Archer(Character):
     BASE_STATS = {
         'constitution': 9,   # Низкое-среднее телосложение
         'strength': 8,       # Низкая сила
-        'attack': 25,
-        'defense': 4,
         'dexterity': 14,     # Высокая ловкость
         'intelligence': 10   # Средний интеллект
     }
@@ -125,17 +87,7 @@ class Archer(Character):
     }
     
     def __init__(self, name, level=1):
-        scaled_stats = Character.scale_stats(self.BASE_STATS, level, self.GROWTH_RATES)
-        
-        super().__init__(
-            name=name,
-            role="archer",
-            hp=1,
-            max_hp=1,
-            level=level,
-            is_player=True,
-            **scaled_stats
-        )
+        super().__init__(name=name, role="archer", level=level, is_player=True)
 
 class Mage(Character):
     """Класс Мага - очень высокий урон, низкая защита и здоровье."""
@@ -143,8 +95,6 @@ class Mage(Character):
     BASE_STATS = {
         'constitution': 7,   # Очень низкое телосложение
         'strength': 4,       # Очень низкая сила
-        'attack': 30,
-        'defense': 2,
         'dexterity': 12,
         'intelligence': 20   # Очень высокий интеллект
     }
@@ -159,17 +109,7 @@ class Mage(Character):
     }
     
     def __init__(self, name, level=1):
-        scaled_stats = Character.scale_stats(self.BASE_STATS, level, self.GROWTH_RATES)
-        
-        super().__init__(
-            name=name,
-            role="mage",
-            hp=1,
-            max_hp=1,
-            level=level,
-            is_player=True,
-            **scaled_stats
-        )
+        super().__init__(name=name, role="mage", level=level, is_player=True)
 
 class Healer(Character):
     """Класс Лекаря - низкий урон, средние защита и здоровье, способность лечить."""
@@ -177,8 +117,6 @@ class Healer(Character):
     BASE_STATS = {
         'constitution': 10,  # Среднее телосложение
         'strength': 5,       # Низкая сила
-        'attack': 6,
-        'defense': 6,
         'dexterity': 12,
         'intelligence': 16   # Высокий интеллект
     }
@@ -193,19 +131,8 @@ class Healer(Character):
     }
     
     def __init__(self, name, level=1):
-        scaled_stats = Character.scale_stats(self.BASE_STATS, level, self.GROWTH_RATES)
-        
-        super().__init__(
-            name=name,
-            role="healer",
-            hp=1,
-            max_hp=1,
-            level=level,
-            is_player=True,
-            **scaled_stats
-        )
+        super().__init__(name=name, role="healer", level=level, is_player=True, can_heal=True)
         
         # Добавляем способности лечения
         self.add_ability('heal', HealAbility())
         #self.add_ability('mass_heal', MassHealAbility())
-        self.can_heal = True
