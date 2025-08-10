@@ -8,18 +8,22 @@ from Battle.base_mechanics import GameMechanics
 class Ability:
     """Базовый класс для способностей"""
     
-    def __init__(self, name,  type=0, damage_scale=0.0, cooldown=1, energy_cost=0, description="", icon=""):
+    def __init__(self, name, type=0, damage_scale=0.0, cooldown=1, energy_cost=0, description="", icon="", is_mass=False):
         """
         Инициализация способности.
         
         :param name: Название способности
+        :param type: Тип способности - 0 - атака, 1 - лечение, 2 - отдых и т.д.
         :param damage_scale: Процент урона от атаки владельца
         :param cooldown: Количество раундов до восстановления способности
         :param energy_cost: Стоимость энергии для использования
         :param description: Описание способности
+        :param icon: Иконка способности
+        :param is_mass: Массовая способность
         """
         self.name = name
         self.type = type # Тип способности - 0 - атака, 1 - лечение, 2 - отдых и т.д.
+        self.is_mass = is_mass
         self.damage_scale = damage_scale
         self.cooldown = cooldown # чтобы была задержка 1 ход - указываем 2
         self.current_cooldown = 0
@@ -114,6 +118,7 @@ class Ability:
         """Возвращает информацию о способности."""
         return {
             'name': self.name,
+            'type': self.type,
             'damage_scale': self.damage_scale,
             'cooldown': self.cooldown,
             'current_cooldown': self.current_cooldown,
@@ -202,13 +207,13 @@ class BasicAttack(Ability):
         if is_critical:
             template = "%1 %2 атакует %3 и наносит %4 КРИТИЧЕСКОГО урона! (%5 заблокировано) %6"
             crit_text = "💥" if damage > 0 else ""
-            if character.is_player:
+            if hasattr(character, 'is_player') and character.is_player:
                 elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
             else:
                 elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
         else:
             template = "%1 %2 атакует %3 и наносит %4 урона. (%5 заблокировано)"
-            if character.is_player:
+            if hasattr(character, 'is_player') and character.is_player:
                 elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3)]
             else:
                 elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (str(blocked), 3)]
@@ -239,7 +244,7 @@ class RestAbility(Ability):
         old_energy = character.energy if hasattr(character, 'energy') else 0
         
         # Восстанавливаем энергию
-        if hasattr(character, 'energy'):
+        if hasattr(character, 'energy') and hasattr(character, 'derived_stats'):
             character.energy = min(character.derived_stats.max_energy, character.energy + self.energy_restore)
             actual_restore = character.energy - old_energy
         else:
@@ -260,7 +265,7 @@ class RestAbility(Ability):
     
     def check_specific_conditions(self, character, targets):
         """Проверяет, может ли персонаж отдыхать (не на максимуме энергии)."""
-        if not hasattr(character, 'energy'):
+        if not hasattr(character, 'energy') or not hasattr(character, 'derived_stats'):
             return False
         return character.energy < character.derived_stats.max_energy
 
@@ -270,6 +275,7 @@ class SplashAttack(Ability):
     def __init__(self):
         super().__init__(
             name="Сплэш Атака",
+            is_mass=True,
             damage_scale=0.7,
             cooldown=3,
             energy_cost=20,
@@ -297,7 +303,7 @@ class SplashAttack(Ability):
         }
         
         # Рассчитываем базовый урон
-        base_damage = int(character.attack * self.damage_scale)
+        base_damage = int(character.derived_stats.attack * self.damage_scale)
         
         # Атакуем каждую цель с применением игровых механик
         for target in alive_targets:
@@ -420,6 +426,7 @@ class MassHealAbility(Ability):
         super().__init__(
             name="Массовое лечение",
             type=1,
+            is_mass=True,
             damage_scale=0.0,
             cooldown=4,
             energy_cost=30,
@@ -446,8 +453,8 @@ class MassHealAbility(Ability):
             'total_healed': 0
         }
         
-        # Рассчитываем лечение на цель
-        heal_per_target = max(1, self.base_heal_amount // len(alive_allies))
+        # Рассчитываем лечение на цель с защитой от деления на ноль
+        heal_per_target = max(1, self.base_heal_amount // max(1, len(alive_allies)))
         base_heal_amount = max(1, random.randint(heal_per_target - 3, heal_per_target + 3))
         
         # Проверка критического лечения (сниженный шанс для массового)
@@ -497,6 +504,99 @@ class MassHealAbility(Ability):
     def check_specific_conditions(self, character, targets):
         return True
 
+class VolleyAbility(Ability):
+    """Способность: Град стрел - массовая атака по всем врагам"""
+    
+    def __init__(self):
+        super().__init__(
+            name="Град стрел",
+            type=0,
+            is_mass=True,
+            damage_scale=0.6,
+            cooldown=3,
+            energy_cost=25,
+            description="Массовая атака, поражающая всех врагов стрелами",
+            icon="🏹"
+        )
+    
+    def execute(self, character, targets, **kwargs):
+        """Выполняет массовую атаку по всем врагам."""
+        # Фильтруем живые цели
+        alive_targets = [target for target in targets if target.is_alive()]
+        
+        if not alive_targets:
+            return {
+                'success': False,
+                'message': 'Нет целей для атаки',
+                'type': 'volley'
+            }
+        
+        results = {
+            'type': 'volley',
+            'attacker': character.name,
+            'targets': {},
+            'total_damage': 0,
+            'messages': []
+        }
+        
+        # Создаем начальное сообщение
+        template = "%1 %2 запускает способность Град стрел!"
+        elements = [(self.icon, 0), (character.name, 2)]
+        results['messages'].append(battle_logger.create_log_message(template, elements))
+        
+        # Рассчитываем базовый урон
+        base_damage = int(character.derived_stats.attack * self.damage_scale)
+        
+        # Атакуем каждую цель с применением игровых механик
+        for target in alive_targets:
+            mechanics_results = GameMechanics.apply_all_mechanics(self, character, target, base_damage)
+            
+            target_result = {
+                'damage_dealt': 0,
+                'damage_blocked': 0,
+                'is_critical': False,
+                'dodge': mechanics_results['dodge_success'],
+                'target_alive': target.is_alive()
+            }
+            
+            if mechanics_results['dodge_success']:
+                # Цель уклонилась
+                target_result['message'] = mechanics_results['dodge_message']
+                # Добавляем сообщение об уклонении
+                dodge_template = "  🔸 %1 уклоняется от стрел!"
+                dodge_elements = [(target.name, 4)]
+                results['messages'].append(battle_logger.create_log_message(dodge_template, dodge_elements))
+            else:
+                # Атака прошла, наносим урон
+                actual_damage = mechanics_results['final_damage']
+                # Наносим урон цели
+                target.take_damage(actual_damage)
+                
+                target_result['damage_dealt'] = actual_damage
+                target_result['damage_blocked'] = mechanics_results['blocked_damage']
+                target_result['is_critical'] = mechanics_results['critical_hit']
+                target_result['target_alive'] = target.is_alive()
+                
+                results['total_damage'] += actual_damage
+                
+                # Добавляем детальное сообщение о уроне по цели
+                if mechanics_results['critical_hit']:
+                    damage_template = "  🔸 %1 получает %2 КРИТИЧЕСКОГО урона! (%3 заблокировано) %4"
+                    crit_text = "💥" if actual_damage > 0 else ""
+                    damage_elements = [(target.name, 4), (str(actual_damage), 1), (str(mechanics_results['blocked_damage']), 3), (crit_text, 0)]
+                else:
+                    damage_template = "  🔸 %1 получает %2 урона. (%3 заблокировано)"
+                    damage_elements = [(target.name, 4), (str(actual_damage), 1), (str(mechanics_results['blocked_damage']), 3)]
+                
+                results['messages'].append(battle_logger.create_log_message(damage_template, damage_elements))
+            
+            results['targets'][target.name] = target_result
+        
+        return results
+    
+    def check_specific_conditions(self, character, targets):
+        return True
+
 # === Система управления способностями персонажа ===
 
 class AbilityManager:
@@ -511,7 +611,15 @@ class AbilityManager:
     
     def add_ability(self, name, ability_instance):
         """Добавляет способность персонажу."""
-        self.abilities[name] = ability_instance
+        # Создаем копию способности для каждого персонажа
+        if hasattr(ability_instance, '__class__'):
+            new_ability = ability_instance.__class__()
+            # Копируем все атрибуты
+            for attr, value in ability_instance.__dict__.items():
+                setattr(new_ability, attr, value)
+            self.abilities[name] = new_ability
+        else:
+            self.abilities[name] = ability_instance
     
     def remove_ability(self, name):
         """Удаляет способность по имени."""
@@ -575,7 +683,8 @@ ABILITY_TEMPLATES = {
     'rest': RestAbility,
     'splash_attack': SplashAttack,
     'heal': HealAbility,
-    'mass_heal': MassHealAbility
+    'mass_heal': MassHealAbility,
+    'volley': VolleyAbility
 }
 
 def create_ability(ability_name):

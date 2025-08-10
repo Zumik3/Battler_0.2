@@ -1,5 +1,5 @@
 from Characters.base_class import Character
-from Characters.abilities import HealAbility, MassHealAbility
+from Characters.abilities import HealAbility, MassHealAbility, VolleyAbility
 
 class Tank(Character):
     """Класс Танка - высокая защита, умеренный урон, низкая ловкость."""
@@ -88,6 +88,9 @@ class Archer(Character):
     
     def __init__(self, name, level=1):
         super().__init__(name=name, role="archer", level=level, is_player=True)
+
+        # Добавляем способности
+        self.add_ability('volley', VolleyAbility())
 
 class Mage(Character):
     """Класс Мага - очень высокий урон, низкая защита и здоровье."""
