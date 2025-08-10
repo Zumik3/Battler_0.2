@@ -55,17 +55,18 @@ class Character:
         """Обновляет кулдауны способностей в конце раунда."""
         self.ability_manager.update_cooldowns()
         
+    def take_heal(self, heal_amount):
+        old_hp = self.hp
+        self.hp = min(self.derived_stats.max_hp, self.hp + int(heal_amount))
+        return self.hp - old_hp
+
     def take_damage(self, damage):
         """Наносит урон персонажу, учитывая защиту."""
-        blocked = int((1 - (1 / (1 + self.derived_stats.defense * 0.1))) * damage)
-        blocked = min(blocked, int(damage * 0.7))
-        blocked = max(0, blocked)
-        final_damage = max(1, damage - blocked)
-        self.hp -= final_damage
+        self.hp -= damage
         if self.hp <= 0:
             self.hp = 0
             self.alive = False
-        return final_damage, blocked
+        return True
         
     def is_alive(self):
         """Проверяет, жив ли персонаж."""

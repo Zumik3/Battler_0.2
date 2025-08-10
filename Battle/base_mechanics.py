@@ -65,7 +65,7 @@ class GameMechanics:
         armor_effectiveness = min(armor_effectiveness, 0.85)
         reduced_damage = damage * (1 - armor_effectiveness)
         # Урон не может быть меньше 1
-        return max(1, int(reduced_damage))
+        return max(1, int(reduced_damage)), int(damage - reduced_damage)
     
     @staticmethod
     def check_dodge_with_message(attacker, target):
@@ -104,7 +104,7 @@ class GameMechanics:
         return random.random() < crit_chance
     
     @staticmethod
-    def apply_all_mechanics(attacker, target, base_damage):
+    def apply_all_mechanics(ability, attacker, target, base_damage):
         """
         Применяет все базовые игровые механики последовательно.
         :param attacker: Атакующий персонаж
@@ -118,36 +118,40 @@ class GameMechanics:
             'critical_hit': False,
             'base_damage': base_damage,
             'varied_damage': 0,
+            'blocked_damage': 0,
             'reduced_damage': 0,
             'final_damage': 0
         }
-        
-        # Проверка уклонения с генерацией сообщения
-        dodge_success, dodge_message = GameMechanics.check_dodge_with_message(attacker, target)
-        results['dodge_success'] = dodge_success
-        results['dodge_message'] = dodge_message
-        
-        if dodge_success:
-            results['final_damage'] = 0
-            return results
         
         # Проверка критического удара
         results['critical_hit'] = GameMechanics.check_critical(attacker)
         crit_multiplier = 2.0 if results['critical_hit'] else 1.0
         
-        # Применение вариации урона
+        # Применение вариации урона/хила
         results['varied_damage'] = GameMechanics.calculate_damage_variance(base_damage)
         damage_after_variance = results['varied_damage'] * crit_multiplier
+        results['final_damage'] = int(damage_after_variance)
         
-        # Применение брони
-        defence = target.derived_stats.defense
-        if defence > 0:
-            results['reduced_damage'] = GameMechanics.calculate_armor_reduction(
-                damage_after_variance, defence)
-        else:
-            results['reduced_damage'] = damage_after_variance
+        if ability.type == 0: #(проверяем только атаки)
+            
+            # Проверка уклонения с генерацией сообщения
+            dodge_success, dodge_message = GameMechanics.check_dodge_with_message(attacker, target)
+            results['dodge_success'] = dodge_success
+            results['dodge_message'] = dodge_message
+            
+            if dodge_success:
+                results['final_damage'] = 0
+                return results
         
-        results['final_damage'] = max(0, round(results['reduced_damage']))
+            # Применение брони
+            defence = target.derived_stats.defense
+            if defence > 0:
+                results['reduced_damage'], results['blocked_damage'] = GameMechanics.calculate_armor_reduction(
+                    damage_after_variance, defence)
+            else:
+                results['reduced_damage'] = damage_after_variance
+            
+            results['final_damage'] = max(0, round(results['reduced_damage']))
         
         return results
     
