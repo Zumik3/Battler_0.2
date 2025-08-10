@@ -176,10 +176,10 @@ def select_ability_based_on_analysis(character, analysis):
         
         if analysis['allies_critical'] and single_heals:
             return random.choice(single_heals)
-        elif (analysis['avg_allies_hp'] < 0.6 and mass_heals and analysis['alive_allies_count'] > 2):
+        elif (len(analysis['allies_need_healing']) > 1 and  mass_heals):
             return random.choice(mass_heals)
-        else:
-            return random.choice(heal_abilities)
+        else: #TODO: исправить тут
+            return random.choice(single_heals)
     
     elif chosen_action == 'attack' and attack_abilities:
         return random.choice(attack_abilities)
@@ -239,7 +239,10 @@ def decide_action(character, allies, enemies):
     target = None
     if _is_heal_ability(chosen_ability):
         # Для лечения выбираем самого раненого союзника
-        if analysis['allies_critical']:
+        if chosen_ability.name.lower() in ['mass_heal', 'массовое лечение', 'mass_heal']:
+            # Выбираем живых союзников с неполным HP
+            target = [ally for ally in alive_allies if ally.hp < ally.derived_stats.max_hp] if alive_allies else [character]
+        elif analysis['allies_critical']:
             target = min(analysis['allies_critical'], key=lambda x: x.hp/x.derived_stats.max_hp)
         elif analysis['allies_need_healing']:
             target = min(analysis['allies_need_healing'], key=lambda x: x.hp/x.derived_stats.max_hp)
@@ -248,9 +251,6 @@ def decide_action(character, allies, enemies):
     elif _is_rest_ability(chosen_ability):
         # Для отдыха цель - сам персонаж
         target = character
-    elif chosen_ability.name.lower() in ['mass_heal', 'массовое лечение', 'mass_heal']:
-        # Для массового лечения используем всех союзников
-        target = alive_allies if alive_allies else [character]
     else:
         # Для атакующих способностей выбираем врага
         if analysis['weak_enemies']:
@@ -269,36 +269,15 @@ def decide_action(character, allies, enemies):
     
     # Если результат уже содержит сообщение, возвращаем его
     if result and isinstance(result, dict):
-        if 'message' in result:
+        if 'messages' in result:
             return result
-        # Если нет сообщения, но есть тип действия, создаем сообщение
-        elif 'type' in result:
-            if result['type'] == 'basic_attack':
-                message = f"{character.name} атакует {result.get('target', 'цель')} и наносит {result.get('damage_dealt', 0)} урона!"
-                result['message'] = message
-                return result
-            elif result['type'] == 'rest':
-                message = f"{character.name} отдыхает и восстанавливает {result.get('energy_restored', 30)} энергии!"
-                result['message'] = message
-                return result
-            elif result['type'] == 'heal':
-                message = f"{character.name} лечит {result.get('target', 'союзника')} на {result.get('heal_amount', 0)} HP!"
-                result['message'] = message
-                return result
-            elif result['type'] == 'mass_heal':
-                message = f"{character.name} использует массовое лечение!"
-                result['message'] = message
-                return result
-            elif result['type'] == 'splash_attack':
-                message = f"{character.name} использует сплэш атаку!"
-                result['message'] = message
-                return result
+
     
     # Если нет результата или он некорректный, создаем базовый результат
     if not result:
         result = {
             'success': True,
-            'message': f"{character.name} использует {chosen_ability.name}!"
+            'messages': [f"{character.name} использует {chosen_ability.name}!"]
         }
     
     return result

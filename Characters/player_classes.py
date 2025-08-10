@@ -135,4 +135,4 @@ class Healer(Character):
         
         # Добавляем способности лечения
         self.add_ability('heal', HealAbility())
-        #self.add_ability('mass_heal', MassHealAbility())
+        self.add_ability('mass_heal', MassHealAbility())

@@ -1,5 +1,6 @@
 # abilities.py - Система способностей персонажей
 
+from logging import critical
 import random
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
@@ -158,7 +159,7 @@ class BasicAttack(Ability):
         
         # Применяем все игровые механики сразу
         base_damage = int(character.derived_stats.attack * self.damage_scale)
-        mechanics_results = GameMechanics.apply_all_mechanics(character, target, base_damage)
+        mechanics_results = GameMechanics.apply_all_mechanics(self, character, target, base_damage)
         
         # Подготавливаем базовый результат
         result = {
@@ -176,24 +177,23 @@ class BasicAttack(Ability):
         # Формируем сообщение и финальные данные
         if mechanics_results['dodge_success']:
             # Цель уклонилась - используем сообщение из механик
-            result['message'] = mechanics_results['dodge_message']
+            result['messages'] = [mechanics_results['dodge_message']]
         else:
             # Атака прошла, наносим урон
             actual_damage = mechanics_results['final_damage']
-            is_critical = mechanics_results['critical_hit']
-            
             # Наносим урон цели
-            damage_dealt, blocked = target.take_damage(actual_damage)
+            target.take_damage(actual_damage)
             
-            result['damage_dealt'] = damage_dealt
-            result['damage_blocked'] = blocked
-            result['is_critical'] = is_critical
+            result['damage_dealt'] = actual_damage
+            result['damage_blocked'] = mechanics_results['blocked_damage']
+            result['is_critical'] = mechanics_results['critical_hit']
             result['target_alive'] = target.is_alive()
             
             # Создаем сообщение об успешной атаке
-            result['message'] = self._create_attack_message(
-                character, target, damage=actual_damage, blocked=blocked, is_critical=is_critical
-            )
+            result['messages'] = [self._create_attack_message(
+                character, target, damage=actual_damage, 
+                blocked=result['damage_blocked'], is_critical=result['is_critical']
+            )]
         
         return result
     
@@ -249,13 +249,13 @@ class RestAbility(Ability):
         template = "%1 %2 отдыхает и восстанавливает %3 энергии!"
         elements = [(self.icon, 0), (character.name, 2), (str(actual_restore), 6)]  # голубой цвет для энергии
         
-        message = battle_logger.create_log_message(template, elements)
+        messages = [battle_logger.create_log_message(template, elements)]
             
         return {
             'type': 'rest',
             'character': character.name,
             'energy_restored': actual_restore,
-            'message': message
+            'messages': messages
         }
     
     def check_specific_conditions(self, character, targets):
@@ -301,7 +301,7 @@ class SplashAttack(Ability):
         
         # Атакуем каждую цель с применением игровых механик
         for target in alive_targets:
-            mechanics_results = GameMechanics.apply_all_mechanics(character, target, base_damage)
+            mechanics_results = GameMechanics.apply_all_mechanics(self, character, target, base_damage)
             
             target_result = {
                 'damage_dealt': 0,
@@ -335,7 +335,7 @@ class SplashAttack(Ability):
         template = "%1 %2 использует Сплэш Атаку по %3 целям!"
         elements = [(self.icon, 0), (character.name, 2), (str(len(alive_targets)), 1)]
         
-        results['message'] = battle_logger.create_log_message(template, elements)
+        results['messages'] = [battle_logger.create_log_message(template, elements)]
         
         return results
     
@@ -384,17 +384,14 @@ class HealAbility(Ability):
         base_heal = random.randint(self.base_heal_amount - 5, self.base_heal_amount + 5)
         
         # Проверка критического лечения
-        is_critical = GameMechanics.check_critical(character)
-        heal_multiplier = 2.0 if is_critical else 1.0
-        final_heal_amount = int(base_heal * heal_multiplier)
+        mechanics_results = GameMechanics.apply_all_mechanics(self, character, target, base_heal)
+        final_heal_amount = mechanics_results['final_damage']
         
         # Применяем лечение
-        old_hp = target.hp
-        target.hp = min(target.derived_stats.max_hp, target.hp + final_heal_amount)
-        actual_heal = target.hp - old_hp
+        actual_heal = target.take_heal(final_heal_amount)
         
         # Создаем сообщение
-        if is_critical:
+        if mechanics_results['critical_hit']:
             template = "%1 %2 лечит %3 на %4 КРИТИЧЕСКОГО здоровья! %5"
             crit_text = "✨" if actual_heal > 0 else ""
             elements = [(self.icon, 0), (character.name, 2), (target.name, 2), (str(actual_heal), 3), (crit_text, 0)]
@@ -402,19 +399,18 @@ class HealAbility(Ability):
             template = "%1 %2 лечит %3 на %4 здоровья."
             elements = [(self.icon, 0), (character.name, 2), (target.name, 2), (str(actual_heal), 3)]
         
-        message = battle_logger.create_log_message(template, elements)
+        messages = [battle_logger.create_log_message(template, elements)]
         
         return {
             'type': 'heal',
             'healer': character.name,
             'target': target.name,
             'heal_amount': actual_heal,
-            'is_critical': is_critical,
-            'message': message
+            'is_critical': mechanics_results['critical_hit'],
+            'messages': messages
         }
     
     def check_specific_conditions(self, character, targets):
-        """Проверяет, есть ли живые союзники для лечения."""
         return True
 
 class MassHealAbility(Ability):
@@ -472,25 +468,34 @@ class MassHealAbility(Ability):
             })
             results['total_healed'] += actual_heal
         
-        # Создаем сообщение
+        # Создаем детализированное сообщение
         if is_critical:
-            template = "%1 %2 использует массовое лечение и восстанавливает %3 здоровья! %4"
+            message_template = "%1 %2 использует массовое лечение и восстанавливает %3 здоровья! %4"
             crit_text = "🌟" if results['total_healed'] > 0 else ""
-            elements = [(self.icon, 0), (character.name, 2), (str(results['total_healed']), 3), (crit_text, 0)]
+            message_elements = [(self.icon, 0), (character.name, 2), (str(results['total_healed']), 3), (crit_text, 0)]
         else:
-            template = "%1 %2 использует массовое лечение и восстанавливает %3 здоровья."
-            elements = [(self.icon, 0), (character.name, 2), (str(results['total_healed']), 3)]
+            message_template = "%1 %2 использует массовое лечение и восстанавливает %3 здоровья."
+            message_elements = [(self.icon, 0), (character.name, 2), (str(results['total_healed']), 3)]
         
-        results['message'] = battle_logger.create_log_message(template, elements)
+        results['messages'] = []
+        results['messages'].append(battle_logger.create_log_message(message_template, message_elements))
+
+        # Добавляем детали по каждому союзнику (упрощенный формат)
+        last_element = 0
+        for target_info in results['targets']:
+            # Для каждого союзника добавляем 3 элемента: имя, " вылечен на ", количество
+            detail_template = "  🔹 %1 вылечен на %2 здоровья"
+            detail_elements = [(target_info['target'], 2),  # имя - зеленый        # обычный текст
+                (str(target_info['heal_amount']), 6),  # количество - бирюзовый
+            ]
+            results['messages'].append(battle_logger.create_log_message(detail_template, detail_elements))
+
         results['is_critical'] = is_critical
         
         return results
     
     def check_specific_conditions(self, character, targets):
-        """Проверяет, есть ли живые союзники для лечения."""
-        if not targets:
-            return False
-        return any(target.is_alive() for target in targets)
+        return True
 
 # === Система управления способностями персонажа ===
 

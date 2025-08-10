@@ -62,9 +62,15 @@ def post_battle_processing(players, enemies, battle_result) -> None:
     """
     # Начисляем награды при победе
     if battle_result == "win":
+        
+        battle_logger.set_message_delay(0)
+
+        battle_logger.log(f"🎖️ ПОБЕДА! Все враги повержены!")
         award_rewards(players, enemies)
         # Восстановление энергии всем выжившим игрокам
         restore_energy_after_battle([p for p in players if p.is_alive()])
+
+        battle_logger.set_message_delay()
     
     # Сброс кулдаунов всех способностей у всех персонажей
     reset_all_cooldowns(players + enemies)

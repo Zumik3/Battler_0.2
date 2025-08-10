@@ -10,7 +10,7 @@ class BattleLogger:
         self.observers = []  # Список наблюдателей
         self.message_delay = BATTLE_DELAY  # Задержка между сообщениями
     
-    def set_message_delay(self, delay):
+    def set_message_delay(self, delay=BATTLE_DELAY):
         """Устанавливает задержку между сообщениями"""
         self.message_delay = max(0, delay)
     
@@ -88,11 +88,6 @@ class BattleLogger:
         :param elements: Список упорядоченных пар [(ключ, цвет), ...] 
                         где ключ может быть строкой или числом
         :return: Список кортежей (текст, цвет) для цветного вывода
-        
-        Пример:
-        template = "%1 атакует %2 и наносит %3 урона"
-        elements = [("Герой", 3), ("Дракон", 1), (50, 4)]  # число 50, а не строка "50"
-        Результат: [("Герой", 3), (" атакует ", 0), ("Дракон", 1), (" и наносит ", 0), ("50", 4), (" урона", 0)]
         """
         result = []
         current_pos = 0
@@ -107,7 +102,7 @@ class BattleLogger:
                     result.append((template[current_pos:], 0))
                 break
             
-            # Добавляем текст до шаблона
+            # Добавляем текст до шаблона (включая возможные \n)
             if template_start > current_pos:
                 result.append((template[current_pos:template_start], 0))
             
