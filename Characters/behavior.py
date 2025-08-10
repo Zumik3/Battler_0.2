@@ -182,6 +182,12 @@ def select_ability_based_on_analysis(character, analysis):
             return random.choice(single_heals)
     
     elif chosen_action == 'attack' and attack_abilities:
+
+        if analysis['alive_allies_count'] > 1:
+            mass_abilities = [a for a in attack_abilities if a.name.lower() in ['град стрел']]
+            if mass_abilities:
+                return random.choice(mass_abilities)
+        
         return random.choice(attack_abilities)
     
     elif chosen_action == 'rest' and rest_abilities:
@@ -253,7 +259,9 @@ def decide_action(character, allies, enemies):
         target = character
     else:
         # Для атакующих способностей выбираем врага
-        if analysis['weak_enemies']:
+        if chosen_ability.is_mass:
+             target = alive_enemies
+        elif analysis['weak_enemies']:
             # Предпочтительно атакуем слабых врагов
             target = random.choice(analysis['weak_enemies'])
         elif alive_enemies:
