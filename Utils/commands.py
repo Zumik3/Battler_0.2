@@ -5,6 +5,7 @@ from Battle.battle_logic import simulate_battle
 from Battle.battle_logger import battle_logger
 from Config.curses_config import BATTLE_DELAY
 from Characters.char_utils import create_enemies
+from Utils.display import display_inventory_screen
 
 class CommandHandler:
     def __init__(self, players, enemies, stdscr=None):
@@ -22,7 +23,10 @@ class CommandHandler:
             'cls': self.clear_log,
             'exit': self.exit_game,
             'quit': self.exit_game,
-            'q': self.exit_game
+            'q': self.exit_game,
+            'inventory': self.open_inventory,
+            'inv': self.open_inventory,
+            'i': self.open_inventory
         }
     
     def process_input(self, key):
@@ -76,6 +80,7 @@ class CommandHandler:
         battle_logger.log_system_message("  go/start/fight - начать бой")
         battle_logger.log_system_message("  help/h - показать помощь")
         battle_logger.log_system_message("  clear/cls - очистить лог")
+        battle_logger.log_system_message("  inventory/inv/i - открыть инвентарь")
         battle_logger.log_system_message("  exit/quit/q - выйти из игры")
         battle_logger.set_message_delay(BATTLE_DELAY)
         return False  # Не выходить из игры
@@ -90,6 +95,17 @@ class CommandHandler:
         """Выходит из игры"""
         battle_logger.log_system_message("👋 До новых встреч!")
         return True  # Выход из игры
+    
+    def open_inventory(self):
+        """Открывает инвентарь"""
+        if self.stdscr:  # Проверяем, что экран доступен
+            try:
+                display_inventory_screen(self.stdscr, self.players)
+            except Exception as e:
+                battle_logger.log_system_message(f"❌ Ошибка открытия инвентаря: {str(e)}")
+        else:
+            battle_logger.log_system_message("❌ Невозможно открыть инвентарь в текущем режиме")
+        return False  # Не выходить из игры
     
     def get_input(self):
         """Возвращает текущую строку ввода"""
