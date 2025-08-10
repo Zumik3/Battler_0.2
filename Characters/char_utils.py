@@ -1,11 +1,12 @@
 import curses
 import random
+from Characters.base_class import Character
 import Config.game_config as Config
 from Characters.namer import EnemyNamer
 from Characters.monster_classes import Goblin, Orc, Skeleton, Wizard, Troll  # Импортируем классы монстров
 
 
-def draw_character_name(stdscr, y, x, char, base_color):
+def draw_character_name(stdscr, y, x, char):
     """
     Отображает имя персонажа с правильной расцветкой.
     Иконка смерти включена в строку, длина поля保持 постоянной.
@@ -18,6 +19,8 @@ def draw_character_name(stdscr, y, x, char, base_color):
     """
     name_width = Config.NAME_COLUMN_WIDTH
     base_name = f"{char.name} [{char.level}]"
+
+    base_color = curses.COLOR_GREEN if char.is_player else curses.COLOR_BLUE
     
     # Если персонаж мёртв — добавляем иконку смерти
     if char.hp <= 0:

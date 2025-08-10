@@ -11,11 +11,8 @@ def calculate_dodge_chance(target):
     # Базовый шанс уклонения 5%
     base_dodge = 0.05
     # Бонус к уклонению: +1% за каждые 2 единицы ловкости сверх 10
-    if hasattr(target, 'dexterity'):
-        dex_bonus = max(0, (target.dexterity - 10) * 0.005) # +0.5% за каждую единицу dex > 10
-    else:
-        dex_bonus = 0 # Если атрибута нет, бонус 0
-    
+    dex_bonus = max(0, (target.dexterity - 10) * 0.005) # +0.5% за каждую единицу dex > 10
+
     # Максимальный шанс уклонения 30%
     return min(0.30, base_dodge + dex_bonus)
 
@@ -124,7 +121,7 @@ def execute_heal_ability(healer, target_ally, heal_amount_base, battle_logger):
     
     # Применяем лечение
     old_hp = target_ally.hp
-    target_ally.hp = min(target_ally.max_hp, target_ally.hp + final_heal_amount)
+    target_ally.hp = min(target_ally.derived_stats.max_hp, target_ally.hp + final_heal_amount)
     actual_heal = target_ally.hp - old_hp # Реальное количество восстановленных HP
     
     # Выводим сообщение в лог
@@ -187,7 +184,7 @@ def execute_mass_heal_ability(healer, allies_list, heal_amount_base, battle_logg
         
         # Применяем лечение
         old_hp = target_ally.hp
-        target_ally.hp = min(target_ally.max_hp, target_ally.hp + final_heal_amount)
+        target_ally.hp = min(target_ally.derived_stats.max_hp, target_ally.hp + final_heal_amount)
         actual_heal = target_ally.hp - old_hp  # Реальное количество восстановленных HP
         
         individual_heals.append((target_ally.name, actual_heal))

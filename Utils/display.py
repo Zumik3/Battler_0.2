@@ -8,6 +8,12 @@ from Characters.char_utils import draw_character_name
 from Utils.progress_bar import draw_progress_bar, draw_energy_bar
 from Inventory.inventory import get_inventory
 
+def create_screen_observer(stdscr, command_handler):
+    """Создает наблюдателя для автоматического обновления экрана"""
+    def screen_observer(message):
+        update_display(stdscr, command_handler)
+        stdscr.refresh()
+    return screen_observer
 
 def update_display(stdscr, command_handler):
     """Обновляет отображение экрана"""
@@ -40,67 +46,62 @@ def update_display(stdscr, command_handler):
         stdscr.addstr(input_y, 0, "─" * (width-1), get_color_pair(COLOR_GRAY) | curses.A_DIM)
         stdscr.addstr(input_y + 1, 0, f"❱ {input_str}", get_color_pair(COLOR_WHITE) | curses.A_BOLD)
         
-        #stdscr.refresh()
-        
     except curses.error:
         pass
 
-def create_screen_observer(stdscr, command_handler):
-    """Создает наблюдателя для автоматического обновления экрана"""
-    def screen_observer(message):
-        update_display(stdscr, command_handler)  # Пустая строка для ввода во время боя
-        stdscr.refresh()
-    return screen_observer
-
 def display_characters(stdscr, players, enemies, width, height):
+    """Отображает персонажей на экране"""
+    
     # Левая часть - игроки
     mid_x = width // 2
-    #top_height = min(Config.MIN_TOP_HEIGHT, height // 3)
-    #log_y = top_height + 2
     stdscr.addstr(4, 2, "🧍 Команда приключенцев:", curses.A_BOLD)
-    #stdscr.addstr(5, 2, "─" * (mid_x - 4), curses.A_DIM)
+
     for i, char in enumerate(players):
-        color = COLOR_GREEN if char.alive else COLOR_RED
-        draw_character_name(stdscr, 5 + i, 4, char, color)
-        # Рисуем HP-бар
-        bar_x = 4 + NAME_COLUMN_WIDTH + 1
-        draw_progress_bar(
-            stdscr=stdscr,
-            y=5 + i,
-            x=bar_x,
-            current_value=char.hp,
-            max_value=char.max_hp,
-            bar_width=HP_BAR_WIDTH
-        )
-        # Рисуем энергетический бар (только для игроков)
-        energy_bar_x = bar_x + HP_BAR_WIDTH + 2
-        draw_energy_bar(
-            stdscr=stdscr,
-            y=5 + i,
-            x=energy_bar_x,
-            current_energy=char.energy,
-            max_energy=char.max_energy,
-            bar_width=ENERGY_BAR_WIDTH
-        )
+        draw_character_info(stdscr, char, 5 + i, 4, is_player=True)
     
     # === Враги ===
     stdscr.addstr(4, mid_x + 2, "👹 Враги:", curses.A_BOLD)
     for i, char in enumerate(enemies):
-        color = COLOR_BLUE if char.alive else COLOR_RED
-        draw_character_name(stdscr, 6 + i, mid_x + 4, char, color)
-        # Рисуем HP-бар
-        bar_x = mid_x + 4 + NAME_COLUMN_WIDTH + 1
-        draw_progress_bar(
-            stdscr=stdscr,
-            y=6 + i,
-            x=bar_x,
-            current_value=char.hp,
-            max_value=char.max_hp,
-            bar_width=HP_BAR_WIDTH,
-        )
+        draw_character_info(stdscr, char, 6 + i, mid_x + 4, is_player=False)
+
+def draw_character_info(stdscr, character, y, x, is_player=True):
+    """
+    Универсальная функция отрисовки информации о персонаже
+    
+    Args:
+        stdscr: Экран curses
+        character: Объект персонажа
+        y, x: Координаты для отрисовки
+        is_player: True для игроков, False для монстров
+    """
+    # Имя персонажа
+    draw_character_name(stdscr, y, x, character)
+    
+    # Рисуем HP-бар
+    bar_x = x + NAME_COLUMN_WIDTH + 1
+    draw_progress_bar(
+        stdscr=stdscr,
+        y=y,
+        x=bar_x,
+        current_value=character.hp,
+        max_value=character.derived_stats.max_hp,
+        bar_width=HP_BAR_WIDTH
+    )
+    
+    # Рисуем энергетический бар
+    energy_bar_x = bar_x + HP_BAR_WIDTH + 2
+    draw_energy_bar(
+        stdscr=stdscr,
+        y=y,
+        x=energy_bar_x,
+        current_energy=character.energy,
+        max_energy=character.derived_stats.max_energy,
+        bar_width=ENERGY_BAR_WIDTH
+    )
 
 def display_log(stdscr, width, height, log_start_y) -> None:
-# Отображаем лог - занимаем большую часть экрана
+    """Отображает лог боя"""
+    # Отображаем лог - занимаем большую часть экрана
     log_height = height - log_start_y - 5
     log_lines = battle_logger.get_lines()
     if log_lines:
@@ -119,6 +120,3 @@ def display_log(stdscr, width, height, log_start_y) -> None:
                         current_x += len(text)
                 else:
                     stdscr.addstr(log_start_y + 2 + i, 2, display_line, get_color_pair(COLOR_WHITE))
-
-# Экспорт функций для удобства использования
-#__all__ = ['update_display', 'create_screen_observer']

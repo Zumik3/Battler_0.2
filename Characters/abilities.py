@@ -157,7 +157,7 @@ class BasicAttack(Ability):
             }
         
         # Применяем все игровые механики сразу
-        base_damage = int(character.attack * self.damage_scale)
+        base_damage = int(character.derived_stats.attack * self.damage_scale)
         mechanics_results = GameMechanics.apply_all_mechanics(character, target, base_damage)
         
         # Подготавливаем базовый результат
@@ -192,27 +192,27 @@ class BasicAttack(Ability):
             
             # Создаем сообщение об успешной атаке
             result['message'] = self._create_attack_message(
-                character, target, damage=actual_damage, is_critical=is_critical
+                character, target, damage=actual_damage, blocked=blocked, is_critical=is_critical
             )
         
         return result
     
-    def _create_attack_message(self, character, target, damage=0, is_critical=False):
+    def _create_attack_message(self, character, target, damage=0, blocked=0, is_critical=False):
         """Создает сообщение для атаки в зависимости от результата."""
         if is_critical:
-            template = "%1 %2 атакует %3 и наносит %4 КРИТИЧЕСКОГО урона! %5"
+            template = "%1 %2 атакует %3 и наносит %4 КРИТИЧЕСКОГО урона! (%5 заблокировано) %6"
             crit_text = "💥" if damage > 0 else ""
             if character.is_player:
-                elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (crit_text, 0)]
+                elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
             else:
-                elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (crit_text, 0)]
+                elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
         else:
-            template = "%1 %2 атакует %3 и наносит %4 урона."
+            template = "%1 %2 атакует %3 и наносит %4 урона. (%5 заблокировано)"
             if character.is_player:
-                elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1)]
+                elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3)]
             else:
-                elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1)]
-        
+                elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (str(blocked), 3)]
+            
         return battle_logger.create_log_message(template, elements)
     
     def check_specific_conditions(self, character, targets):
@@ -239,8 +239,8 @@ class RestAbility(Ability):
         old_energy = character.energy if hasattr(character, 'energy') else 0
         
         # Восстанавливаем энергию
-        if hasattr(character, 'energy') and hasattr(character, 'max_energy'):
-            character.energy = min(character.max_energy, character.energy + self.energy_restore)
+        if hasattr(character, 'energy'):
+            character.energy = min(character.derived_stats.max_energy, character.energy + self.energy_restore)
             actual_restore = character.energy - old_energy
         else:
             actual_restore = 0
@@ -260,9 +260,9 @@ class RestAbility(Ability):
     
     def check_specific_conditions(self, character, targets):
         """Проверяет, может ли персонаж отдыхать (не на максимуме энергии)."""
-        if not hasattr(character, 'energy') or not hasattr(character, 'max_energy'):
+        if not hasattr(character, 'energy'):
             return False
-        return character.energy < character.max_energy
+        return character.energy < character.derived_stats.max_energy
 
 class SplashAttack(Ability):
     """Способность: Атака по области (сплэш)"""
@@ -390,7 +390,7 @@ class HealAbility(Ability):
         
         # Применяем лечение
         old_hp = target.hp
-        target.hp = min(target.max_hp, target.hp + final_heal_amount)
+        target.hp = min(target.derived_stats.max_hp, target.hp + final_heal_amount)
         actual_heal = target.hp - old_hp
         
         # Создаем сообщение
@@ -463,7 +463,7 @@ class MassHealAbility(Ability):
         # Лечим каждого союзника
         for target_ally in alive_allies:
             old_hp = target_ally.hp
-            target_ally.hp = min(target_ally.max_hp, target_ally.hp + final_heal_amount)
+            target_ally.hp = min(target_ally.derived_stats.max_hp, target_ally.hp + final_heal_amount)
             actual_heal = target_ally.hp - old_hp
             
             results['targets'].append({
