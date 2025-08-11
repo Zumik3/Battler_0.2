@@ -1,9 +1,28 @@
 # abilities.py - Система способностей персонажей
 
-from logging import critical
 import random
+from logging import critical
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
+
+class AbilityResult:
+    """Простой класс для возврата результатов из способностей."""
+    
+    def __init__(self):
+        # Универсальные свойства для всех способностей
+        self.success = True
+        self.ability_type = ""
+        self.character = ""
+        self.targets = []
+        self.messages = []
+        self.damage_dealt = 0
+        self.heal_amount = 0
+        self.energy_restored = 0
+        self.is_critical = False
+        self.total_damage = 0
+        self.total_heal = 0
+        self.reason = ""  # Причина неудачи
+        self.details = {}  # Для дополнительной информации
 
 class Ability:
     """Базовый класс для способностей"""
@@ -68,7 +87,12 @@ class Ability:
         :return: Результат использования способности
         """
         if not self.can_use(character, targets):
-            return self.get_cannot_use_result(character)
+            result = AbilityResult()
+            result.success = False
+            result.reason = "Невозможно использовать способность"
+            result.ability_type = self.__class__.__name__.lower()
+            result.character = character.name if hasattr(character, 'name') else str(character)
+            return result
         
         # Тратим энергию
         if hasattr(character, 'energy'):
@@ -104,16 +128,6 @@ class Ability:
         """
         pass
     
-    def get_cannot_use_result(self, character):
-        """
-        Возвращает результат, когда способность нельзя использовать.
-        """
-        return {
-            'success': False,
-            'reason': 'Невозможно использовать способность',
-            'character': character.name
-        }
-    
     def get_info(self):
         """Возвращает информацию о способности."""
         return {
@@ -141,12 +155,14 @@ class BasicAttack(Ability):
     
     def execute(self, character, targets, **kwargs):
         """Выполняет базовую атаку по одной цели."""
+        result = AbilityResult()
+        result.ability_type = "basic_attack"
+        result.character = character.name
+        
         if not targets:
-            return {
-                'success': False, 
-                'message': 'Нет целей для атаки',
-                'type': 'basic_attack'
-            }
+            result.success = False
+            result.reason = 'Нет целей для атаки'
+            return result
         
         # Выбираем первую живую цель
         target = None
@@ -156,48 +172,39 @@ class BasicAttack(Ability):
                 break
         
         if not target:
-            return {
-                'success': False, 
-                'message': 'Нет живых целей для атаки',
-                'type': 'basic_attack'
-            }
+            result.success = False
+            result.reason = 'Нет живых целей для атаки'
+            return result
+        
+        result.targets = [target.name]
         
         # Применяем все игровые механики сразу
         base_damage = int(character.derived_stats.attack * self.damage_scale)
         mechanics_results = GameMechanics.apply_all_mechanics(self, character, target, base_damage)
         
-        # Подготавливаем базовый результат
-        result = {
-            'type': 'basic_attack',
-            'attacker': character.name,
-            'target': target.name,
-            'damage_dealt': 0,
-            'damage_blocked': 0,
-            'is_critical': False,
-            'dodge': mechanics_results['dodge_success'],
-            'target_alive': target.is_alive(),
-            'mechanics_details': mechanics_results
-        }
-        
         # Формируем сообщение и финальные данные
         if mechanics_results['dodge_success']:
             # Цель уклонилась - используем сообщение из механик
-            result['messages'] = [mechanics_results['dodge_message']]
+            result.messages = [mechanics_results['dodge_message']]
+            result.details['dodge'] = True
+            result.details['target_alive'] = target.is_alive()
         else:
             # Атака прошла, наносим урон
             actual_damage = mechanics_results['final_damage']
             # Наносим урон цели
             target.take_damage(actual_damage)
             
-            result['damage_dealt'] = actual_damage
-            result['damage_blocked'] = mechanics_results['blocked_damage']
-            result['is_critical'] = mechanics_results['critical_hit']
-            result['target_alive'] = target.is_alive()
+            result.damage_dealt = actual_damage
+            result.total_damage = actual_damage
+            result.details['damage_blocked'] = mechanics_results['blocked_damage']
+            result.is_critical = mechanics_results['critical_hit']
+            result.details['target_alive'] = target.is_alive()
             
             # Создаем сообщение об успешной атаке
-            result['messages'] = [self._create_attack_message(
+            result.messages = [self._create_attack_message(
                 character, target, damage=actual_damage, 
-                blocked=result['damage_blocked'], is_critical=result['is_critical']
+                blocked=mechanics_results['blocked_damage'], 
+                is_critical=mechanics_results['critical_hit']
             )]
         
         return result
@@ -207,13 +214,13 @@ class BasicAttack(Ability):
         if is_critical:
             template = "%1 %2 атакует %3 и наносит %4 КРИТИЧЕСКОГО урона! (%5 заблокировано) %6"
             crit_text = "💥" if damage > 0 else ""
-            if hasattr(character, 'is_player') and character.is_player:
+            if character.is_player:
                 elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
             else:
                 elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
         else:
             template = "%1 %2 атакует %3 и наносит %4 урона. (%5 заблокировано)"
-            if hasattr(character, 'is_player') and character.is_player:
+            if character.is_player:
                 elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3)]
             else:
                 elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (str(blocked), 3)]
@@ -240,6 +247,10 @@ class RestAbility(Ability):
     
     def execute(self, character, targets, **kwargs):
         """Выполняет отдых и восстанавливает энергию."""
+        result = AbilityResult()
+        result.ability_type = "rest"
+        result.character = character.name
+        
         # Сохраняем текущую энергию для отчета
         old_energy = character.energy if hasattr(character, 'energy') else 0
         
@@ -250,18 +261,17 @@ class RestAbility(Ability):
         else:
             actual_restore = 0
             
+        result.energy_restored = actual_restore
+        result.details['old_energy'] = old_energy
+        result.details['new_energy'] = character.energy if hasattr(character, 'energy') else 0
+            
         # Создаем сообщение
         template = "%1 %2 отдыхает и восстанавливает %3 энергии!"
-        elements = [(self.icon, 0), (character.name, 2), (str(actual_restore), 6)]  # голубой цвет для энергии
+        elements = [(self.icon, 0), (character.name, 2), (str(actual_restore), 6)]
         
-        messages = [battle_logger.create_log_message(template, elements)]
+        result.messages = [battle_logger.create_log_message(template, elements)]
             
-        return {
-            'type': 'rest',
-            'character': character.name,
-            'energy_restored': actual_restore,
-            'messages': messages
-        }
+        return result
     
     def check_specific_conditions(self, character, targets):
         """Проверяет, может ли персонаж отдыхать (не на максимуме энергии)."""
@@ -285,31 +295,31 @@ class SplashAttack(Ability):
     
     def execute(self, character, targets, **kwargs):
         """Выполняет сплэш атаку по всем целям."""
+        result = AbilityResult()
+        result.ability_type = "splash_attack"
+        result.character = character.name
+        
         # Фильтруем живые цели
         alive_targets = [target for target in targets if target.is_alive()]
         
         if not alive_targets:
-            return {
-                'success': False,
-                'message': 'Нет целей для атаки',
-                'type': 'splash_attack'
-            }
+            result.success = False
+            result.reason = 'Нет целей для атаки'
+            return result
         
-        results = {
-            'type': 'splash_attack',
-            'attacker': character.name,
-            'targets': {},
-            'total_damage': 0
-        }
+        result.targets = [target.name for target in alive_targets]
         
         # Рассчитываем базовый урон
         base_damage = int(character.derived_stats.attack * self.damage_scale)
         
         # Атакуем каждую цель с применением игровых механик
+        total_damage = 0
+        target_details = {}
+        
         for target in alive_targets:
             mechanics_results = GameMechanics.apply_all_mechanics(self, character, target, base_damage)
             
-            target_result = {
+            target_info = {
                 'damage_dealt': 0,
                 'damage_blocked': 0,
                 'is_critical': False,
@@ -319,7 +329,7 @@ class SplashAttack(Ability):
             
             if mechanics_results['dodge_success']:
                 # Цель уклонилась
-                target_result['message'] = mechanics_results['dodge_message']
+                target_info['message'] = mechanics_results['dodge_message']
             else:
                 # Атака прошла, наносим урон
                 actual_damage = mechanics_results['final_damage']
@@ -328,22 +338,25 @@ class SplashAttack(Ability):
                 # Наносим урон цели
                 damage_dealt, blocked = target.take_damage(actual_damage)
                 
-                target_result['damage_dealt'] = damage_dealt
-                target_result['damage_blocked'] = blocked
-                target_result['is_critical'] = is_critical
-                target_result['target_alive'] = target.is_alive()
+                target_info['damage_dealt'] = damage_dealt
+                target_info['damage_blocked'] = blocked
+                target_info['is_critical'] = is_critical
+                target_info['target_alive'] = target.is_alive()
                 
-                results['total_damage'] += damage_dealt
+                total_damage += damage_dealt
             
-            results['targets'][target.name] = target_result
+            target_details[target.name] = target_info
+        
+        result.total_damage = total_damage
+        result.details['targets_info'] = target_details
         
         # Создаем общее сообщение
         template = "%1 %2 использует Сплэш Атаку по %3 целям!"
         elements = [(self.icon, 0), (character.name, 2), (str(len(alive_targets)), 1)]
         
-        results['messages'] = [battle_logger.create_log_message(template, elements)]
+        result.messages = [battle_logger.create_log_message(template, elements)]
         
-        return results
+        return result
     
     def check_specific_conditions(self, character, targets):
         return True
@@ -365,12 +378,14 @@ class HealAbility(Ability):
     
     def execute(self, character, targets, **kwargs):
         """Выполняет лечение одного союзника."""
+        result = AbilityResult()
+        result.ability_type = "heal"
+        result.character = character.name
+        
         if not targets:
-            return {
-                'success': False, 
-                'message': 'Нет целей для лечения',
-                'type': 'heal'
-            }
+            result.success = False
+            result.reason = 'Нет целей для лечения'
+            return result
         
         # Выбираем первую живую цель
         target = None
@@ -380,11 +395,11 @@ class HealAbility(Ability):
                 break
         
         if not target:
-            return {
-                'success': False, 
-                'message': 'Нет живых целей для лечения',
-                'type': 'heal'
-            }
+            result.success = False
+            result.reason = 'Нет живых целей для лечения'
+            return result
+        
+        result.targets = [target.name]
         
         # Рассчитываем базовое лечение
         base_heal = random.randint(self.base_heal_amount - 5, self.base_heal_amount + 5)
@@ -396,6 +411,10 @@ class HealAbility(Ability):
         # Применяем лечение
         actual_heal = target.take_heal(final_heal_amount)
         
+        result.heal_amount = actual_heal
+        result.total_heal = actual_heal
+        result.is_critical = mechanics_results['critical_hit']
+        
         # Создаем сообщение
         if mechanics_results['critical_hit']:
             template = "%1 %2 лечит %3 на %4 КРИТИЧЕСКОГО здоровья! %5"
@@ -405,16 +424,9 @@ class HealAbility(Ability):
             template = "%1 %2 лечит %3 на %4 здоровья."
             elements = [(self.icon, 0), (character.name, 2), (target.name, 2), (str(actual_heal), 3)]
         
-        messages = [battle_logger.create_log_message(template, elements)]
+        result.messages = [battle_logger.create_log_message(template, elements)]
         
-        return {
-            'type': 'heal',
-            'healer': character.name,
-            'target': target.name,
-            'heal_amount': actual_heal,
-            'is_critical': mechanics_results['critical_hit'],
-            'messages': messages
-        }
+        return result
     
     def check_specific_conditions(self, character, targets):
         return True
@@ -437,21 +449,18 @@ class MassHealAbility(Ability):
     
     def execute(self, character, targets, **kwargs):
         """Выполняет массовое лечение всех союзников."""
+        result = AbilityResult()
+        result.ability_type = "mass_heal"
+        result.character = character.name
+        
         alive_allies = [ally for ally in targets if ally.is_alive()]
         
         if not alive_allies:
-            return {
-                'success': False, 
-                'message': 'Нет живых союзников для лечения',
-                'type': 'mass_heal'
-            }
+            result.success = False
+            result.reason = 'Нет живых союзников для лечения'
+            return result
         
-        results = {
-            'type': 'mass_heal',
-            'healer': character.name,
-            'targets': [],
-            'total_healed': 0
-        }
+        result.targets = [ally.name for ally in alive_allies]
         
         # Рассчитываем лечение на цель с защитой от деления на ноль
         heal_per_target = max(1, self.base_heal_amount // max(1, len(alive_allies)))
@@ -463,43 +472,48 @@ class MassHealAbility(Ability):
         heal_multiplier = 1.8 if is_critical else 1.0
         final_heal_amount = int(base_heal_amount * heal_multiplier)
         
-        # Лечим каждого союзника
+        # Лечим каждого союзника и собираем информацию
+        total_healed = 0
+        healed_targets = []
+        
         for target_ally in alive_allies:
             old_hp = target_ally.hp
             target_ally.hp = min(target_ally.derived_stats.max_hp, target_ally.hp + final_heal_amount)
             actual_heal = target_ally.hp - old_hp
             
-            results['targets'].append({
+            healed_targets.append({
                 'target': target_ally.name,
                 'heal_amount': actual_heal
             })
-            results['total_healed'] += actual_heal
+            total_healed += actual_heal
+        
+        result.total_heal = total_healed
+        result.heal_amount = total_healed
+        result.is_critical = is_critical
+        result.details['healed_targets'] = healed_targets
         
         # Создаем детализированное сообщение
         if is_critical:
             message_template = "%1 %2 использует массовое лечение и восстанавливает %3 здоровья! %4"
-            crit_text = "🌟" if results['total_healed'] > 0 else ""
-            message_elements = [(self.icon, 0), (character.name, 2), (str(results['total_healed']), 3), (crit_text, 0)]
+            crit_text = "🌟" if total_healed > 0 else ""
+            message_elements = [(self.icon, 0), (character.name, 2), (str(total_healed), 3), (crit_text, 0)]
         else:
             message_template = "%1 %2 использует массовое лечение и восстанавливает %3 здоровья."
-            message_elements = [(self.icon, 0), (character.name, 2), (str(results['total_healed']), 3)]
+            message_elements = [(self.icon, 0), (character.name, 2), (str(total_healed), 3)]
         
-        results['messages'] = []
-        results['messages'].append(battle_logger.create_log_message(message_template, message_elements))
+        result.messages = []
+        result.messages.append(battle_logger.create_log_message(message_template, message_elements))
 
         # Добавляем детали по каждому союзнику (упрощенный формат)
-        last_element = 0
-        for target_info in results['targets']:
+        for target_info in healed_targets:
             # Для каждого союзника добавляем 3 элемента: имя, " вылечен на ", количество
             detail_template = "  🔹 %1 вылечен на %2 здоровья"
-            detail_elements = [(target_info['target'], 2),  # имя - зеленый        # обычный текст
+            detail_elements = [(target_info['target'], 2),  # имя - зеленый
                 (str(target_info['heal_amount']), 6),  # количество - бирюзовый
             ]
-            results['messages'].append(battle_logger.create_log_message(detail_template, detail_elements))
-
-        results['is_critical'] = is_critical
+            result.messages.append(battle_logger.create_log_message(detail_template, detail_elements))
         
-        return results
+        return result
     
     def check_specific_conditions(self, character, targets):
         return True
@@ -521,37 +535,36 @@ class VolleyAbility(Ability):
     
     def execute(self, character, targets, **kwargs):
         """Выполняет массовую атаку по всем врагам."""
+        result = AbilityResult()
+        result.ability_type = "volley"
+        result.character = character.name
+        
         # Фильтруем живые цели
         alive_targets = [target for target in targets if target.is_alive()]
         
         if not alive_targets:
-            return {
-                'success': False,
-                'message': 'Нет целей для атаки',
-                'type': 'volley'
-            }
+            result.success = False
+            result.reason = 'Нет целей для атаки'
+            return result
         
-        results = {
-            'type': 'volley',
-            'attacker': character.name,
-            'targets': {},
-            'total_damage': 0,
-            'messages': []
-        }
-        
-        # Создаем начальное сообщение
-        template = "%1 %2 запускает способность Град стрел!"
-        elements = [(self.icon, 0), (character.name, 2)]
-        results['messages'].append(battle_logger.create_log_message(template, elements))
+        result.targets = [target.name for target in alive_targets]
         
         # Рассчитываем базовый урон
         base_damage = int(character.derived_stats.attack * self.damage_scale)
         
         # Атакуем каждую цель с применением игровых механик
+        total_damage = 0
+        target_details = {}
+        
+        # Создаем начальное сообщение
+        template = "%1 %2 запускает способность Град стрел!"
+        elements = [(self.icon, 0), (character.name, 2)]
+        result.messages = [battle_logger.create_log_message(template, elements)]
+        
         for target in alive_targets:
             mechanics_results = GameMechanics.apply_all_mechanics(self, character, target, base_damage)
             
-            target_result = {
+            target_info = {
                 'damage_dealt': 0,
                 'damage_blocked': 0,
                 'is_critical': False,
@@ -561,23 +574,23 @@ class VolleyAbility(Ability):
             
             if mechanics_results['dodge_success']:
                 # Цель уклонилась
-                target_result['message'] = mechanics_results['dodge_message']
+                target_info['message'] = mechanics_results['dodge_message']
                 # Добавляем сообщение об уклонении
                 dodge_template = "  🔸 %1 уклоняется от стрел!"
                 dodge_elements = [(target.name, 4)]
-                results['messages'].append(battle_logger.create_log_message(dodge_template, dodge_elements))
+                result.messages.append(battle_logger.create_log_message(dodge_template, dodge_elements))
             else:
                 # Атака прошла, наносим урон
                 actual_damage = mechanics_results['final_damage']
                 # Наносим урон цели
                 target.take_damage(actual_damage)
                 
-                target_result['damage_dealt'] = actual_damage
-                target_result['damage_blocked'] = mechanics_results['blocked_damage']
-                target_result['is_critical'] = mechanics_results['critical_hit']
-                target_result['target_alive'] = target.is_alive()
+                target_info['damage_dealt'] = actual_damage
+                target_info['damage_blocked'] = mechanics_results['blocked_damage']
+                target_info['is_critical'] = mechanics_results['critical_hit']
+                target_info['target_alive'] = target.is_alive()
                 
-                results['total_damage'] += actual_damage
+                total_damage += actual_damage
                 
                 # Добавляем детальное сообщение о уроне по цели
                 if mechanics_results['critical_hit']:
@@ -588,11 +601,14 @@ class VolleyAbility(Ability):
                     damage_template = "  🔸 %1 получает %2 урона. (%3 заблокировано)"
                     damage_elements = [(target.name, 4), (str(actual_damage), 1), (str(mechanics_results['blocked_damage']), 3)]
                 
-                results['messages'].append(battle_logger.create_log_message(damage_template, damage_elements))
+                result.messages.append(battle_logger.create_log_message(damage_template, damage_elements))
             
-            results['targets'][target.name] = target_result
+            target_details[target.name] = target_info
         
-        return results
+        result.total_damage = total_damage
+        result.details['targets_info'] = target_details
+        
+        return result
     
     def check_specific_conditions(self, character, targets):
         return True
@@ -664,7 +680,10 @@ class AbilityManager:
         """Использует способность напрямую."""
         if ability and ability.can_use(character, targets):
             return ability.use(character, targets, **kwargs)
-        return None
+        result = AbilityResult()
+        result.success = False
+        result.reason = "Способность недоступна"
+        return result
     
     def update_cooldowns(self):
         """Обновляет кулдауны всех способностей в конце раунда."""

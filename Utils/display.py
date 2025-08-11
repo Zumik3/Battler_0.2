@@ -54,7 +54,7 @@ def display_characters(stdscr, players, enemies, width, height):
     
     # Левая часть - игроки
     mid_x = width // 2
-    stdscr.addstr(4, 2, "🧍 Команда приключенцев:", curses.A_BOLD)
+    stdscr.addstr(4, 2, "🧍 Герои:", curses.A_BOLD)
 
     for i, char in enumerate(players):
         draw_character_info(stdscr, char, 5 + i, 4, is_player=True)

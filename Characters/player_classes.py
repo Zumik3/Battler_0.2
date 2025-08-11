@@ -1,7 +1,26 @@
 from Characters.base_class import Character
 from Characters.abilities import HealAbility, MassHealAbility, VolleyAbility
+from Characters.Equipment.equipment import EquipmentMixin, EquipmentSlot
+from Config.game_config import (
+    SLOT_TYPE_WEAPON, SLOT_TYPE_ARMOR, SLOT_TYPE_ACCESSORY,
+    SLOT_NAME_WEAPON, SLOT_NAME_ARMOR, SLOT_NAME_ACCESSORY
+)
 
-class Tank(Character):
+
+class Player(Character, EquipmentMixin):
+    """Базовый класс для всех игроков (персонажей, управляемых игроком)."""
+    
+    def __init__(self, name, role, level=1):
+        super().__init__(name=name, role=role, level=level, is_player=True)
+        # Создаем слоты для экипировки
+        self.equipment_slots = {
+            SLOT_TYPE_WEAPON: EquipmentSlot(SLOT_NAME_WEAPON, SLOT_TYPE_WEAPON),
+            SLOT_TYPE_ARMOR: EquipmentSlot(SLOT_NAME_ARMOR, SLOT_TYPE_ARMOR),
+            SLOT_TYPE_ACCESSORY: EquipmentSlot(SLOT_NAME_ACCESSORY, SLOT_TYPE_ACCESSORY)
+        }
+
+
+class Tank(Player):
     """Класс Танка - высокая защита, умеренный урон, низкая ловкость."""
     
     BASE_STATS = {
@@ -21,9 +40,10 @@ class Tank(Character):
     }
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="tank", level=level, is_player=True)
+        super().__init__(name=name, role="tank", level=level)
 
-class Warrior(Character):
+
+class Warrior(Player):
     """Класс Воина - сбалансированные характеристики."""
     
     BASE_STATS = {
@@ -43,9 +63,10 @@ class Warrior(Character):
     }
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="warrior", level=level, is_player=True)
+        super().__init__(name=name, role="warrior", level=level)
 
-class Rogue(Character):
+
+class Rogue(Player):
     """Класс Разбойника - высокая ловкость, умеренный урон, низкая защита."""
     
     BASE_STATS = {
@@ -65,9 +86,10 @@ class Rogue(Character):
     }
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="rogue", level=level, is_player=True)
+        super().__init__(name=name, role="rogue", level=level)
 
-class Archer(Character):
+
+class Archer(Player):
     """Класс Лучника - высокий урон, средняя ловкость, низкая защита."""
     
     BASE_STATS = {
@@ -87,12 +109,12 @@ class Archer(Character):
     }
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="archer", level=level, is_player=True)
-
+        super().__init__(name=name, role="archer", level=level)
         # Добавляем способности
         self.add_ability('volley', VolleyAbility())
 
-class Mage(Character):
+
+class Mage(Player):
     """Класс Мага - очень высокий урон, низкая защита и здоровье."""
     
     BASE_STATS = {
@@ -112,9 +134,10 @@ class Mage(Character):
     }
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="mage", level=level, is_player=True)
+        super().__init__(name=name, role="mage", level=level)
 
-class Healer(Character):
+
+class Healer(Player):
     """Класс Лекаря - низкий урон, средние защита и здоровье, способность лечить."""
     
     BASE_STATS = {
@@ -134,7 +157,7 @@ class Healer(Character):
     }
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="healer", level=level, is_player=True, can_heal=True)
+        super().__init__(name=name, role="healer", level=level)
         
         # Добавляем способности лечения
         self.add_ability('heal', HealAbility())
