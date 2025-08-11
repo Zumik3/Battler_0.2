@@ -1,5 +1,5 @@
 # character.py
-from Characters.abilities import AbilityManager
+from Characters.Abilities.abilities import AbilityManager
 from Config.game_config import BASE_ENERGY_COST
 from Battle.battle_logger import battle_logger
 from .base_stats import Stats, DerivedStats

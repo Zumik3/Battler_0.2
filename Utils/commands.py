@@ -6,6 +6,7 @@ from Battle.battle_logger import battle_logger
 from Config.curses_config import BATTLE_DELAY
 from Characters.char_utils import create_enemies
 from Utils.display import display_inventory_screen
+from Utils.test_window import show_test_button_window  # Импортируем новую функцию
 
 class CommandHandler:
     def __init__(self, players, enemies, stdscr=None):
@@ -26,7 +27,8 @@ class CommandHandler:
             'q': self.exit_game,
             'inventory': self.open_inventory,
             'inv': self.open_inventory,
-            'i': self.open_inventory
+            'i': self.open_inventory,
+            'test': self.test_button_window  # Новая тестовая команда
         }
     
     def process_input(self, key):
@@ -81,6 +83,7 @@ class CommandHandler:
         battle_logger.log_system_message("  help/h - показать помощь")
         battle_logger.log_system_message("  clear/cls - очистить лог")
         battle_logger.log_system_message("  inventory/inv/i - открыть инвентарь")
+        battle_logger.log_system_message("  test - тестовое окно с кнопками")
         battle_logger.log_system_message("  exit/quit/q - выйти из игры")
         battle_logger.set_message_delay(BATTLE_DELAY)
         return False  # Не выходить из игры
@@ -105,6 +108,11 @@ class CommandHandler:
                 battle_logger.log_system_message(f"❌ Ошибка открытия инвентаря: {str(e)}")
         else:
             battle_logger.log_system_message("❌ Невозможно открыть инвентарь в текущем режиме")
+        return False  # Не выходить из игры
+    
+    def test_button_window(self):
+        """Тестовое окно с кнопками - при клике пишет 'test' в область сообщений"""
+        show_test_button_window(self.stdscr)
         return False  # Не выходить из игры
     
     def get_input(self):

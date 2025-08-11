@@ -1,6 +1,6 @@
 import curses
 import random
-from Characters.base_class import Character
+from Characters.player_classes import Healer, Mage, Rogue, Warrior
 import Config.game_config as Config
 from Characters.namer import EnemyNamer
 from Characters.monster_classes import Goblin, Orc, Skeleton, Wizard, Troll  # Импортируем классы монстров
@@ -18,7 +18,15 @@ def draw_character_name(stdscr, y, x, char):
     :param base_color: Базовый цвет из Config.COLORS
     """
     name_width = Config.NAME_COLUMN_WIDTH
-    base_name = f"{char.name} [{char.level}]"
+    
+    # Формируем базовое имя с иконкой класса и уровнем
+    class_icon = getattr(char, 'class_icon', '')
+    level_str = f"[{char.level}]" if hasattr(char, 'level') else ""
+    
+    if class_icon:
+        base_name = f"{char.name} {class_icon} {level_str}".strip()
+    else:
+        base_name = f"{char.name} {level_str}".strip()
 
     base_color = curses.COLOR_GREEN if char.is_player else curses.COLOR_BLUE
     
@@ -52,15 +60,13 @@ def create_player_team():
     Создает стандартную команду игрока.
     Возвращает список объектов Character.
     """
-    from Characters.player_classes import Tank, Archer, Healer, Rogue  # Локальный импорт для избежания циклических импортов
-    
     # Пока используем старую систему для совместимости
     # В будущем можно будет выбирать классы
     return [
-        Tank("Танк", level=1),
-        Rogue("Разбойник", level=1),
-        Archer("Лучник", level=1),
-        Healer("Лекарь", level=1),
+        Warrior("Роланд", level=1),
+        Rogue("Стайлс", level=1),
+        Mage("Морган", level=1),
+        Healer("Дамиан", level=1),
     ]
 
 def get_enemy_count_for_level_group(level_group):
