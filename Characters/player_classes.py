@@ -1,7 +1,28 @@
 from Characters.base_class import Character
-from Characters.abilities import HealAbility, MassHealAbility, VolleyAbility
+from Characters.Equipment.equipment import EquipmentMixin, EquipmentSlot
+from Config.game_config import (
+    SLOT_TYPE_WEAPON, SLOT_TYPE_ARMOR, SLOT_TYPE_ACCESSORY,
+    SLOT_NAME_WEAPON, SLOT_NAME_ARMOR, SLOT_NAME_ACCESSORY
+)
 
-class Tank(Character):
+
+class Player(Character, EquipmentMixin):
+    """Базовый класс для всех игроков (персонажей, управляемых игроком)."""
+
+    def __init__(self, name, role, class_icon, class_icon_color=None, level=1):
+        super().__init__(name=name, role=role, level=level, is_player=True)
+        # Создаем слоты для экипировки
+        self.class_icon = class_icon
+        self.class_icon_color = class_icon_color
+
+        self.equipment_slots = {
+            SLOT_TYPE_WEAPON: EquipmentSlot(SLOT_NAME_WEAPON, SLOT_TYPE_WEAPON),
+            SLOT_TYPE_ARMOR: EquipmentSlot(SLOT_NAME_ARMOR, SLOT_TYPE_ARMOR),
+            SLOT_TYPE_ACCESSORY: EquipmentSlot(SLOT_NAME_ACCESSORY, SLOT_TYPE_ACCESSORY)
+        }
+
+
+class Tank(Player):
     """Класс Танка - высокая защита, умеренный урон, низкая ловкость."""
     
     BASE_STATS = {
@@ -20,10 +41,15 @@ class Tank(Character):
         'intelligence': 0.02   # +2% интеллекта за уровень
     }
     
+    class_icon = "T"
+    class_icon_color = 1  # Красный цвет для танка
+    
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="tank", level=level, is_player=True)
+        super().__init__(name=name, role="tank", level=level, 
+                        class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
-class Warrior(Character):
+
+class Warrior(Player):
     """Класс Воина - сбалансированные характеристики."""
     
     BASE_STATS = {
@@ -41,11 +67,16 @@ class Warrior(Character):
         'dexterity': 0.05,     # +5% ловкости за уровень
         'intelligence': 0.03   # +3% интеллекта за уровень
     }
+
+    class_icon = "W"
+    class_icon_color = 1  # Красный цвет для воина
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="warrior", level=level, is_player=True)
+        super().__init__(name=name, role="warrior", level=level, 
+                        class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
-class Rogue(Character):
+
+class Rogue(Player):
     """Класс Разбойника - высокая ловкость, умеренный урон, низкая защита."""
     
     BASE_STATS = {
@@ -64,10 +95,15 @@ class Rogue(Character):
         'intelligence': 0.06   # +6% интеллекта за уровень
     }
     
+    class_icon = "R"
+    class_icon_color = 8  # Серый цвет для разбойника
+    
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="rogue", level=level, is_player=True)
+        super().__init__(name=name, role="rogue", level=level, 
+                        class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
-class Archer(Character):
+
+class Archer(Player):
     """Класс Лучника - высокий урон, средняя ловкость, низкая защита."""
     
     BASE_STATS = {
@@ -86,13 +122,17 @@ class Archer(Character):
         'intelligence': 0.05   # +5% интеллекта за уровень
     }
     
+    class_icon = "A"
+    class_icon_color = 6  # Циановый цвет для лучника
+    
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="archer", level=level, is_player=True)
-
+        super().__init__(name=name, role="archer", level=level, 
+                        class_icon=self.class_icon, class_icon_color=self.class_icon_color)
         # Добавляем способности
-        self.add_ability('volley', VolleyAbility())
+        self.ability_manager.add_ability_by_name('volley')
 
-class Mage(Character):
+
+class Mage(Player):
     """Класс Мага - очень высокий урон, низкая защита и здоровье."""
     
     BASE_STATS = {
@@ -111,10 +151,15 @@ class Mage(Character):
         'intelligence': 0.12   # +12% интеллекта за уровень
     }
     
+    class_icon = "M"
+    class_icon_color = 5  # Магента цвет для мага
+    
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="mage", level=level, is_player=True)
+        super().__init__(name=name, role="mage", level=level, 
+                        class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
-class Healer(Character):
+
+class Healer(Player):
     """Класс Лекаря - низкий урон, средние защита и здоровье, способность лечить."""
     
     BASE_STATS = {
@@ -133,9 +178,13 @@ class Healer(Character):
         'intelligence': 0.09   # +9% интеллекта за уровень
     }
     
+    class_icon = "H"
+    class_icon_color = 6  # Циан цвет для хилера
+    
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="healer", level=level, is_player=True, can_heal=True)
+        super().__init__(name=name, role="healer", level=level, 
+                        class_icon=self.class_icon, class_icon_color=self.class_icon_color)
         
         # Добавляем способности лечения
-        self.add_ability('heal', HealAbility())
-        self.add_ability('mass_heal', MassHealAbility())
+        self.ability_manager.add_ability_by_name('heal')
+        self.ability_manager.add_ability_by_name('mass_heal')

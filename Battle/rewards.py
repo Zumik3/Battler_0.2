@@ -5,6 +5,8 @@ import random
 from Config.game_config import EXP_BASE, GOLD_BASE, EXP_VARIANCE, GOLD_VARIANCE
 from Inventory.inventory import get_inventory
 from Battle.battle_logger import battle_logger
+from Items.item_generator import ItemGenerator
+
 
 class Reward:
     """Базовый класс для наград."""
@@ -159,6 +161,56 @@ class ExperienceReward(Reward):
         return self
 
 
+class LootReward(Reward):
+    """Награда в виде лута (предметов)."""
+    
+    def __init__(self, items: List = None):
+        super().__init__(len(items) if items else 0)
+        self.type = "loot"
+        self.icon = "🧳"
+        self.items = items if items else []
+        self.messages = []
+    
+    def apply_reward(self, character=None):
+        """Добавляет предметы в инвентарь."""
+        inventory = get_inventory()
+        
+        if not self.items:
+            template = "%1 Лут пуст!"
+            elements = [(self.icon, 0)]
+            self.message = battle_logger.create_log_message(template, elements)
+            return self
+        
+        # Добавляем каждый предмет в инвентарь
+        for item in self.items:
+            inventory.add_item(item, 1)
+        
+        # Создаем сообщение о получении лута
+        if len(self.items) == 1:
+            item_name = self.items[0].name
+            template = "%1 Получен предмет: %2!"
+            elements = [(self.icon, 0), (item_name, 2)]  # зеленый цвет для имени предмета
+        else:
+            template = "%1 Получено %2 предметов!"
+            elements = [(self.icon, 0), (str(len(self.items)), 3)]  # желтый цвет для количества
+        
+        self.message = battle_logger.create_log_message(template, elements)
+        
+        # Добавляем детальные сообщения для каждого предмета
+        self.messages = []
+        for item in self.items:
+            detail_template = "  ◦ %1 (%2, Ур.%3)"
+            detail_elements = [
+                (item.name, 2),  # зеленый цвет для имени
+                (item.get_rarity_name(), item.get_rarity_color()),  # цвет редкости
+                (str(item.level), 3)  # желтый цвет для уровня
+            ]
+            detail_message = battle_logger.create_log_message(detail_template, detail_elements)
+            self.messages.append(detail_message)
+        
+        return self
+
+
 class BattleRewards:
     """Награды за победу в битве."""
     
@@ -171,6 +223,78 @@ class BattleRewards:
         gold = level * GOLD_BASE + random.randint(0, level * GOLD_VARIANCE)
         
         return {"exp": exp, "gold": gold}
+    
+    @classmethod
+    def calculate_loot_chance(cls, defeated_enemies: List) -> int:
+        """
+        Рассчитывает количество предметов в луте на основе врагов.
+        
+        :param defeated_enemies: Список побежденных врагов
+        :return: Количество предметов в луте
+        """
+        if not defeated_enemies:
+            return 0
+        
+        # Базовое количество предметов - 1
+        base_items = 1
+        
+        # Добавляем предметы за каждого врага (чем выше уровень, тем больше шанс)
+        total_level = sum(getattr(enemy, 'level', 1) for enemy in defeated_enemies)
+        enemy_count = len(defeated_enemies)
+        
+        # Шанс получить дополнительные предметы
+        additional_items = 0
+        for enemy in defeated_enemies:
+            enemy_level = getattr(enemy, 'level', 1)
+            # Шанс получить предмет зависит от уровня врага
+            if random.random() < (enemy_level * 0.1):  # 10% шанс на уровень
+                additional_items += 1
+        
+        # Бонус за количество врагов
+        group_bonus = enemy_count // 3  # 1 бонусный предмет за каждых 3 врагов
+        
+        total_items = base_items + additional_items + group_bonus
+        
+        # Ограничиваем максимальное количество предметов
+        max_items = min(5, enemy_count + 2)  # максимум 5 предметов или количество врагов+2
+        total_items = min(total_items, max_items)
+        
+        return max(1, total_items)  # Минимум 1 предмет
+    
+    @classmethod
+    def generate_loot(cls, defeated_enemies: List) -> List:
+        """
+        Генерирует лут на основе побежденных врагов.
+        
+        :param defeated_enemies: Список побежденных врагов
+        :return: Список сгенерированных предметов
+        """
+        if not defeated_enemies:
+            return []
+        
+        # Определяем максимальный уровень среди врагов
+        max_level = max(getattr(enemy, 'level', 1) for enemy in defeated_enemies)
+        min_level = max(1, max_level - 2)  # Минимальный уровень на 2 ниже максимального
+        
+        # Определяем количество предметов
+        num_items = cls.calculate_loot_chance(defeated_enemies)
+        
+        # Генерируем лут
+        items = []
+        for _ in range(num_items):
+            # Генерируем предмет с уровнем от min_level до max_level+1
+            item_level = random.randint(min_level, max_level + 1)
+            
+            # Генерируем предмет (с небольшим шансом получить редкий)
+            rarity_weights = [0.6, 0.25, 0.1, 0.04, 0.01]  # Больше шанс на обычные предметы
+            item = ItemGenerator.generate_random_item(
+                min_level=item_level,
+                max_level=item_level + 1,
+                rarity_weights=rarity_weights
+            )
+            items.append(item)
+        
+        return items
     
     @classmethod
     def generate_rewards(cls, defeated_enemies: List) -> List[Reward]:
@@ -191,6 +315,11 @@ class BattleRewards:
         if total_gold > 0:
             rewards_list.append(GoldReward(total_gold))
         
+        # Генерируем лут
+        loot_items = cls.generate_loot(defeated_enemies)
+        if loot_items:
+            rewards_list.append(LootReward(loot_items))
+        
         return rewards_list
     
     @classmethod
@@ -206,6 +335,7 @@ class BattleRewards:
             return {
                 'exp_reward': None,
                 'gold_reward': None,
+                'loot_reward': None,
                 'messages': [],
                 'level_up_messages': []
             }
@@ -216,6 +346,7 @@ class BattleRewards:
         results = {
             'exp_reward': None,
             'gold_reward': None,
+            'loot_reward': None,
             'messages': [],
             'level_up_messages': []
         }
@@ -234,5 +365,12 @@ class BattleRewards:
                 result = reward.apply_reward()
                 results['gold_reward'] = result
                 results['messages'].append(result.message)
+                
+            elif isinstance(reward, LootReward):
+                # Применяем лут (добавляется в общий инвентарь)
+                result = reward.apply_reward()
+                results['loot_reward'] = result
+                results['messages'].append(result.message)
+                results['messages'].extend(result.messages)
         
         return results

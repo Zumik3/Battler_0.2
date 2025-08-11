@@ -47,8 +47,8 @@ def battle_round(players, enemies, battle_logger) -> str:
     return battle_result # Возвращаем результат
 
 def log_result(action_result) -> None:
-    if action_result and 'messages' in action_result:
-        for message in action_result['messages']:
+    if action_result:
+        for message in action_result.messages:
             battle_logger.log(message)
     else:
         battle_logger.log_enemy_action("что-то не так при использовании способности")
