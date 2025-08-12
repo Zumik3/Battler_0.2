@@ -5,7 +5,7 @@ from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
 from Characters.Abilities.abilities import ActiveAbility, AbilityResult
 
-class Mass_heal(ActiveAbility):
+class MassHeal(ActiveAbility):
     """Способность: Массовое лечение"""
     
     def __init__(self):

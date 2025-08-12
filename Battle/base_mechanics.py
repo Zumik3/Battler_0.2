@@ -29,10 +29,16 @@ class GameMechanics:
         # Базовый шанс крита 5%
         base_crit = 0.05
         # Бонус к криту: +1% за каждую единицу ловкости сверх 10
-        dex_bonus = max(0, (character.stats.dexterity - 10) * 0.01)
+        crit_bonus = max(0, (character.stats.dexterity - 10) * 0.01)
         
+        #TODO: пока делаем крит как решение в лоб - надо переделать
+        a = 0
+        crit_ability = character.ability_manager.get_passive_ability('criticalstrike')
+        if crit_ability:
+            ability_effect = crit_ability.apply_effect(character)
+            crit_bonus += ability_effect['critical_bonus']
         # Максимальный шанс крита 50%
-        return min(0.50, base_crit + dex_bonus)
+        return min(0.50, base_crit + crit_bonus)
     
     @staticmethod
     def calculate_damage_variance(base_damage, variance_percent=0.1):

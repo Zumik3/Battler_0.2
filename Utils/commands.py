@@ -5,8 +5,10 @@ from Battle.battle_logic import simulate_battle
 from Battle.battle_logger import battle_logger
 from Config.curses_config import BATTLE_DELAY
 from Characters.char_utils import create_enemies
+from Inventory.inventory import get_inventory
+from Utils.UI.Statistics.statistics_window import GlobalStatsWindow
+from Utils.UI.window import InventoryWindow
 from Utils.display import display_inventory_screen
-from Utils.test_window import show_test_button_window  # Импортируем новую функцию
 from Utils.UI.Skills.skills_window import display_abilities_screen
 
 class CommandHandler:
@@ -31,7 +33,7 @@ class CommandHandler:
             'skills': self.open_skills,
             'abilities': self.open_skills,
             'abil': self.open_skills,
-            'test': self.open_test_window  # Тестовая команда
+            'stat': self.open_statistics  # Тестовая команда
         }
     
     def process_input(self, key):
@@ -47,8 +49,8 @@ class CommandHandler:
             elif key == ord('s') or key == ord('S'):
                 self.open_skills()
                 return False
-            elif key == ord('t') or key == ord('T'):
-                self.open_test_window()
+            elif key == curses.KEY_F12:
+                self.open_statistics()
                 return False
             elif key == ord('h') or key == ord('H'):
                 self.show_help()
@@ -116,6 +118,9 @@ class CommandHandler:
         if self.stdscr:  # Проверяем, что экран доступен
             try:
                 display_inventory_screen(self.stdscr, self.players)
+                #inventory = get_inventory()
+                #window = InventoryWindow(self.stdscr, self.players, inventory)
+                #window.run()
             except Exception as e:
                 battle_logger.log_system_message(f"❌ Ошибка открытия инвентаря: {str(e)}")
         else:
@@ -133,15 +138,16 @@ class CommandHandler:
             battle_logger.log_system_message("❌ Невозможно открыть умения в текущем режиме")
         return False  # Не выходить из игры
     
-    def open_test_window(self):
+    def open_statistics(self):
         """Открывает тестовое окно"""
         if self.stdscr:  # Проверяем, что экран доступен
             try:
-                show_test_button_window(self.stdscr)
+                window = GlobalStatsWindow(self.stdscr)
+                window.run()
             except Exception as e:
-                battle_logger.log_system_message(f"❌ Ошибка тестового окна: {str(e)}")
+                battle_logger.log_system_message(f"❌ Ошибка открытия статистики: {str(e)}")
         else:
-            battle_logger.log_system_message("❌ Невозможно открыть тестовое окно в текущем режиме")
+            battle_logger.log_system_message("❌ Невозможно открыть статистику в текущем режиме")
         return False  # Не выходить из игры
     
     def get_input(self):

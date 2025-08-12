@@ -183,8 +183,8 @@ def select_ability_based_on_analysis(character, analysis):
     
     elif chosen_action == 'attack' and attack_abilities:
 
-        if analysis['alive_allies_count'] > 1:
-            mass_abilities = [a for a in attack_abilities if a.name.lower() in ['град стрел']]
+        if analysis['alive_enemies_count'] > 1:
+            mass_abilities = [a for a in attack_abilities if a.is_mass]
             if mass_abilities:
                 return random.choice(mass_abilities)
         
@@ -274,18 +274,5 @@ def decide_action(character, allies, enemies):
         result = character.ability_manager.use_ability(chosen_ability, character, target)
     else:
         result = character.ability_manager.use_ability(chosen_ability, character, [target] if target else [])
-    
-    # Если результат уже содержит сообщение, возвращаем его
-    if result and isinstance(result, dict):
-        if 'messages' in result:
-            return result
-
-    
-    # Если нет результата или он некорректный, создаем базовый результат
-    if not result:
-        result = {
-            'success': True,
-            'messages': [f"{character.name} использует {chosen_ability.name}!"]
-        }
     
     return result

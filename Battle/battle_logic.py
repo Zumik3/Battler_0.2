@@ -1,5 +1,7 @@
-import random
+
+import uuid
 from Battle.battle_logger import battle_logger
+from Battle.battle_statistics import get_battle_statistics
 from Battle.round_logic import battle_round, display_round_separator
 from Battle.rewards import BattleRewards
 from Config.game_config import MAX_ROUNDS
@@ -34,6 +36,11 @@ def simulate_battle(players, enemies) -> str:
     battle_logger.log("🏁 БОЙ НАЧИНАЕТСЯ!")
     battle_result = "draw"  # По умолчанию - ничья
     
+    #начало записи статистики
+    battle_id = str(uuid.uuid4())
+    stats = get_battle_statistics()
+    stats.start_battle_tracking(battle_id, players, enemies)
+
     # Основной цикл боя
     for round_num in range(1, MAX_ROUNDS + 1):
         
@@ -48,6 +55,10 @@ def simulate_battle(players, enemies) -> str:
             battle_logger.log(f"⏳ Время вышло! Раунд {round_num} стал последним.")
 
     # Все действия после боя
+    # В конце битвы просто сохраняем итоги
+    #Статистика после боя
+    stats.end_battle(battle_id, True, 1)
+
     post_battle_processing(players, enemies, battle_result)
     
     return battle_result

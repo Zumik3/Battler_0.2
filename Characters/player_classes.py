@@ -103,9 +103,15 @@ class Rogue(Player):
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
         self.ability_manager.add_ability_by_name('Backstab')
+        self.ability_manager.add_ability_by_name('SlidingStrike')
+
+        self.ability_manager.add_ability_by_name('CriticalStrike')
 
         for name in self.ability_manager.active_abilities:
             self.ability_manager.level_up_ability(name)
+
+        for name in self.ability_manager.passive_abilities:
+            self.ability_manager.set_ability_level(name, 5)
 
 
 class Archer(Player):
@@ -134,7 +140,7 @@ class Archer(Player):
         super().__init__(name=name, role="archer", level=level, 
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
         # Добавляем способности
-        self.ability_manager.add_ability_by_name('volley')
+        self.ability_manager.add_ability_by_name('Volley')
 
 
 class Mage(Player):
@@ -163,7 +169,7 @@ class Mage(Player):
         super().__init__(name=name, role="mage", level=level, 
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
-        self.ability_manager.add_ability_by_name('fireball')
+        self.ability_manager.add_ability_by_name('Fireball')
 
         for name in self.ability_manager.active_abilities:
             self.ability_manager.level_up_ability(name)
@@ -196,8 +202,8 @@ class Healer(Player):
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
         
         # Добавляем способности лечения
-        self.ability_manager.add_ability_by_name('heal')
-        self.ability_manager.add_ability_by_name('mass_heal')
+        self.ability_manager.add_ability_by_name('Heal')
+        self.ability_manager.add_ability_by_name('MassHeal')
 
         for name in self.ability_manager.active_abilities:
             self.ability_manager.level_up_ability(name)

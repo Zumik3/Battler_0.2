@@ -1,6 +1,7 @@
 import random
 from xxlimited import Str
 from Battle.battle_logger import battle_logger
+from Battle.battle_statistics import CombatActionRecord, get_battle_statistics
 from Characters.behavior import decide_action
 
 def battle_round(players, enemies, battle_logger) -> str:
@@ -47,7 +48,13 @@ def battle_round(players, enemies, battle_logger) -> str:
     return battle_result # Возвращаем результат
 
 def log_result(action_result) -> None:
+
     if action_result:
+        #Статистика
+        stats = get_battle_statistics()
+        action_record = CombatActionRecord.from_ability_result(action_result)
+        stats.add_combat_action(action_record) 
+
         for message in action_result.messages:
             battle_logger.log(message)
     else:
