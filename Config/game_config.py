@@ -28,6 +28,7 @@ SLOT_NAME_CONSUMABLE = 'Расходник'
 INPUT_PROMPT = "❱ "
 PROGRESS_BAR_CHARS = "■□"
 PROGRESS_BORDER_CHARS = "[]"
+DAMAGE_LIST_ICON = "🔸"
 
 #Служебные
 BASE_DELAY_MS = 400  # Задержка между действиями

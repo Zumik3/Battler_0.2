@@ -9,8 +9,8 @@ from Config.game_config import (
 class Player(Character, EquipmentMixin):
     """Базовый класс для всех игроков (персонажей, управляемых игроком)."""
 
-    def __init__(self, name, role, class_icon, class_icon_color=None, level=1):
-        super().__init__(name=name, role=role, level=level, is_player=True)
+    def __init__(self, name, role, class_icon, class_icon_color=None, level=1, can_heal=False):
+        super().__init__(name=name, role=role, level=level, is_player=True, can_heal=can_heal)
         # Создаем слоты для экипировки
         self.class_icon = class_icon
         self.class_icon_color = class_icon_color
@@ -102,6 +102,11 @@ class Rogue(Player):
         super().__init__(name=name, role="rogue", level=level, 
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
+        self.ability_manager.add_ability_by_name('Backstab')
+
+        for name in self.ability_manager.active_abilities:
+            self.ability_manager.level_up_ability(name)
+
 
 class Archer(Player):
     """Класс Лучника - высокий урон, средняя ловкость, низкая защита."""
@@ -182,9 +187,12 @@ class Healer(Player):
     class_icon_color = 6  # Циан цвет для хилера
     
     def __init__(self, name, level=1):
-        super().__init__(name=name, role="healer", level=level, 
+        super().__init__(name=name, role="healer", level=level, can_heal=True, 
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
         
         # Добавляем способности лечения
         self.ability_manager.add_ability_by_name('heal')
         self.ability_manager.add_ability_by_name('mass_heal')
+
+        for name in self.ability_manager.active_abilities:
+            self.ability_manager.level_up_ability(name)

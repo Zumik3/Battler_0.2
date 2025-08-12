@@ -40,7 +40,7 @@ def update_display(stdscr, command_handler):
         stdscr.addstr(2, 0, "─" * (width - 1), get_color_pair(COLOR_GRAY) | curses.A_DIM)
 
         # === ОБЛАСТЬ ПЕРСОНАЖЕЙ ===
-        display_characters(stdscr, command_handler.players, command_handler.enemies, width, height)
+        display_characters(stdscr, command_handler.players, command_handler.enemies, width)
 
         # === ОБЛАСТЬ ЛОГА ===
         log_start_y = 9
@@ -55,26 +55,40 @@ def update_display(stdscr, command_handler):
         pass  # Игнорируем ошибки отрисовки (например, при ресайзе)
 
 
-def display_characters(stdscr, players, enemies, width, height):
+def display_characters(stdscr, players, enemies, width):
     """Отображает персонажей на экране с помощью DrawCharacter"""
+    
+    # Определения позиций и заголовков
+    PLAYERS_HEADER_Y = 4
+    PLAYERS_HEADER_X = 2
+    PLAYERS_START_Y = 5
+    PLAYERS_START_X = 4
+    PLAYERS_HEADER_TEXT = "🧍 Герои:"
+    
+    ENEMIES_HEADER_Y = 4
+    ENEMIES_HEADER_X_OFFSET = 2
+    ENEMIES_START_Y = 5
+    ENEMIES_START_X_OFFSET = 4
+    ENEMIES_HEADER_TEXT = "🎲 Событие:"
+    
     mid_x = width // 2
 
     # Заголовок игроков
-    stdscr.addstr(4, 2, "🧍 Герои:", curses.A_BOLD)
+    stdscr.addstr(PLAYERS_HEADER_Y, PLAYERS_HEADER_X, PLAYERS_HEADER_TEXT, curses.A_BOLD)
 
     # Отрисовка игроков
     for i, char in enumerate(players):
-        y = 5 + i
-        x = 4
+        y = PLAYERS_START_Y + i
+        x = PLAYERS_START_X
         DrawCharacter.draw_character_row(stdscr, char, y, x, is_player=True)
 
     # Заголовок врагов
-    stdscr.addstr(4, mid_x + 2, "🎲 Событие:", curses.A_BOLD)
+    stdscr.addstr(ENEMIES_HEADER_Y, mid_x + ENEMIES_HEADER_X_OFFSET, ENEMIES_HEADER_TEXT, curses.A_BOLD)
 
     # Отрисовка врагов
     for i, char in enumerate(enemies):
-        y = 6 + i
-        x = mid_x + 4
+        y = ENEMIES_START_Y + i
+        x = mid_x + ENEMIES_START_X_OFFSET
         DrawCharacter.draw_character_row(stdscr, char, y, x, is_player=False)
 
 
