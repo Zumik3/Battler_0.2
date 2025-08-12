@@ -80,7 +80,7 @@ class Rogue(Player):
     """Класс Разбойника - высокая ловкость, умеренный урон, низкая защита."""
     
     BASE_STATS = {
-        'constitution': 8,   # Низкое телосложение
+        'constitution': 7,   # Низкое телосложение
         'strength': 6,       # Низкая сила
         'dexterity': 18,     # Высокая ловкость
         'intelligence': 10   # Средний интеллект
@@ -141,7 +141,7 @@ class Mage(Player):
     """Класс Мага - очень высокий урон, низкая защита и здоровье."""
     
     BASE_STATS = {
-        'constitution': 7,   # Очень низкое телосложение
+        'constitution': 6,   # Очень низкое телосложение
         'strength': 4,       # Очень низкая сила
         'dexterity': 12,
         'intelligence': 20   # Очень высокий интеллект
@@ -162,6 +162,11 @@ class Mage(Player):
     def __init__(self, name, level=1):
         super().__init__(name=name, role="mage", level=level, 
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
+
+        self.ability_manager.add_ability_by_name('fireball')
+
+        for name in self.ability_manager.active_abilities:
+            self.ability_manager.level_up_ability(name)
 
 
 class Healer(Player):
