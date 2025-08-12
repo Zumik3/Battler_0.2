@@ -3,9 +3,9 @@
 import random
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
-from Characters.Abilities.abilities import Ability, AbilityResult
+from Characters.Abilities.abilities import ActiveAbility, AbilityResult
 
-class Mass_heal(Ability):
+class MassHeal(ActiveAbility):
     """Способность: Массовое лечение"""
     
     def __init__(self):

@@ -1,9 +1,9 @@
 # Characters/Abilities/rest_ability.py
 
 from Battle.battle_logger import battle_logger
-from Characters.Abilities.abilities import Ability, AbilityResult
+from Characters.Abilities.abilities import ActiveAbility, AbilityResult
 
-class Rest(Ability):
+class Rest(ActiveAbility):
     """Способность: Отдых - восстанавливает энергию"""
     
     def __init__(self):
@@ -17,6 +17,7 @@ class Rest(Ability):
             icon="🧘"
         )
         self.energy_restore = 30
+        self.set_level(1)
     
     def execute(self, character, targets, **kwargs):
         """Выполняет отдых и восстанавливает энергию."""

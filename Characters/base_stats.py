@@ -91,16 +91,12 @@ class DerivedStats:
     def calculate_attack(self, role, stats, psm):
         """Рассчитывает атаку на основе основной характеристики роли."""
         # Определяем основную характеристику для атаки по роли
-        if role in ["tank", "warrior"]:
-            primary_stat = stats.strength
-        elif role in ["rogue", "archer"]:
+        if role in ["rogue", "archer"]:
             primary_stat = stats.dexterity
-        elif role in ["mage", "healer"]:
-            primary_stat = stats.intelligence
         else:
             primary_stat = stats.strength  # По умолчанию
             
-        multiplier = psm.get(role, 0.8)
+        multiplier = 1 #psm.get(role, 0.8)
         return int(primary_stat * multiplier)
     
     def calculate_max_hp(self, level, stats):
@@ -109,4 +105,5 @@ class DerivedStats:
     
     def calculate_max_energy(self, stats):
         """Рассчитывает максимальное количество энергии."""
+        #TODO: переделать. у магов получается мало энергии
         return 50 + int(stats.dexterity * 7 + stats.constitution * 2)

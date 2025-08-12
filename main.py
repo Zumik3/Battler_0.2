@@ -26,20 +26,24 @@ def main(stdscr):
     screen_observer = create_screen_observer(stdscr, command_handler)
     battle_logger.add_observer(screen_observer)
     
+    # Включаем режим получения одиночных нажатий клавиш
+    stdscr.nodelay(False)  # Блокирующий режим
+    stdscr.keypad(True)    # Включаем поддержку специальных клавиш
 
     # Инициализационные сообщения
     battle_logger.log_system_message("🎮 Добро пожаловать в автобаттлер!")
-    battle_logger.log_system_message("Введите 'help' для списка команд")
+    battle_logger.log_system_message("Нажмите 'H' для помощи или 'Enter' для начала боя")
     
     try:
         # Основной цикл
         while True:
-            # Обновляем экран для отображения ввода
+            # Обновляем экран для отображения
             update_display(stdscr, command_handler)
+            stdscr.refresh()
             
             # Обработка ввода
             try:
-                key = stdscr.get_wch()
+                key = stdscr.getch()  # Используем getch() вместо get_wch() для лучшей совместимости
                 result = command_handler.process_input(key)
                 if result is True:  # Нужно выйти
                     break

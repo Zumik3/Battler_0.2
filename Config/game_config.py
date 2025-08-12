@@ -28,11 +28,14 @@ SLOT_NAME_CONSUMABLE = 'Расходник'
 INPUT_PROMPT = "❱ "
 PROGRESS_BAR_CHARS = "■□"
 PROGRESS_BORDER_CHARS = "[]"
+DAMAGE_LIST_ICON = "🔸"
+
+PLAYER_NAME_COLUMN_WIDTH = 12  # Для выравнивания баров (6 имя + 6 остальное)
+MONSTER_NAME_COLUMN_WIDTH = 25  # Для выравнивания баров
 
 #Служебные
 BASE_DELAY_MS = 400  # Задержка между действиями
 ROUND_DELAY_MS = 1200  # Пауза между раундами
-NAME_COLUMN_WIDTH = 21  # Для выравнивания баров
 LOG_MAX_LINES = 200
 MIN_TOP_HEIGHT = 10
 
