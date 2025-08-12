@@ -64,78 +64,167 @@ class DrawCharacter:
             except curses.error:
                 pass
 
-        # 🔹 Предварительный расчёт: сколько займут суффиксы
-        suffix_total_length = 0
-        has_class_icon = bool(getattr(character, 'class_icon', ''))
-        has_level_info = getattr(character, 'level', None) is not None
+        if character.is_player:
+            # Логика для игроков
+            current_x_position = DrawCharacter._draw_player_name(screen, position_y, current_x_position, max_x_position, character, 
+                                                               white_color_pair, yellow_color_pair, final_name_color_pair)
+        else:
+            # Логика для монстров
+            current_x_position = DrawCharacter._draw_monster_name(screen, position_y, current_x_position, max_x_position, character,
+                                                               white_color_pair, yellow_color_pair, final_name_color_pair)
 
-        if has_class_icon:
-            suffix_total_length += CLASS_ICON_DISPLAY_WIDTH  # " [X]" → 3 символа
-        if has_level_info:
-            suffix_total_length += LEVEL_DISPLAY_BASE_WIDTH + len(str(character.level))  # " [10]" → 5, " [5]" → 4 и т.д.
-
-        # Сколько символов доступно под имя (учитываем пробел после †)
-        available_space_for_name = max_x_position - current_x_position - suffix_total_length
-        available_space_for_name = max(0, available_space_for_name)
-
-        # 2. Обрезаем имя с учётом места и добавляем ".."
-        character_full_name = getattr(character, 'name', '')
-        display_name_text = ""
-
-        if available_space_for_name >= MIN_LENGTH_FOR_DOTS:
-            if len(character_full_name) <= available_space_for_name:
-                display_name_text = character_full_name
-            else:
-                display_name_text = character_full_name[:available_space_for_name - EFFECT_DOTS_LENGTH] + ".."
-        elif available_space_for_name == MIN_LENGTH_FOR_DOT:
-            display_name_text = "." if len(character_full_name) > 0 else ""
-        # Если 0 — ничего не выводим
-
-        # Отрисовываем имя
-        if display_name_text:
-            try:
-                if current_x_position < max_x_position:
-                    # Не выходим за границу
-                    end_x_position = min(current_x_position + len(display_name_text), max_x_position)
-                    text_to_render = display_name_text[:end_x_position - current_x_position]
-                    screen.addstr(position_y, current_x_position, text_to_render, final_name_color_pair)
-                    current_x_position += len(text_to_render)
-            except curses.error:
-                pass
-
-        # 3. Класс: [X]
-        class_icon_symbol = getattr(character, 'class_icon', '')
-        class_icon_color_pair = get_color_pair(getattr(character, 'class_icon_color', COLOR_WHITE))
-        if class_icon_symbol and current_x_position + CLASS_ICON_DISPLAY_WIDTH <= max_x_position:
-            try:
-                screen.addstr(position_y, current_x_position, " [", white_color_pair)
-                screen.addstr(position_y, current_x_position + LEVEL_DISPLAY_BASE_WIDTH, class_icon_symbol, class_icon_color_pair)
-                screen.addstr(position_y, current_x_position + CLASS_ICON_DISPLAY_WIDTH, "]", white_color_pair)
-                current_x_position += CLASS_DISPLAY_WIDTH  # " [X]" = 4 символа
-            except curses.error:
-                pass
-
-        # 4. Уровень: [N]
-        character_level = getattr(character, 'level', None)
-        if character_level is not None:
-            level_string = str(character_level)
-            required_space = LEVEL_DISPLAY_BASE_WIDTH + len(level_string) + DEFAULT_SPACING  # " [N]" → 3 + цифры
-            if current_x_position + required_space <= max_x_position:
-                try:
-                    screen.addstr(position_y, current_x_position, " [", white_color_pair)
-                    screen.addstr(position_y, current_x_position + LEVEL_DISPLAY_BASE_WIDTH, level_string, yellow_color_pair)
-                    screen.addstr(position_y, current_x_position + LEVEL_DISPLAY_BASE_WIDTH + len(level_string), "]", white_color_pair)
-                    current_x_position += required_space
-                except curses.error:
-                    pass
-
-        # 5. Заполняем остаток пробелами
+        # Заполняем остаток пробелами
         try:
             while current_x_position < max_x_position:
                 screen.addstr(position_y, current_x_position, " ", final_name_color_pair)
                 current_x_position += 1
         except curses.error:
             pass
+
+        return current_x_position
+
+    @staticmethod
+    def _draw_player_name(screen, position_y: int, position_x: int, max_x_position: int, character,
+                         white_color_pair, yellow_color_pair, final_name_color_pair) -> int:
+        """Отрисовка имени игрока с классом и уровнем: Роланд [W][1]"""
+        current_x_position = position_x
+        
+        # Расчет длины суффиксов
+        suffix_length = 0
+        has_class = bool(getattr(character, 'class_icon', ''))
+        has_level = getattr(character, 'level', None) is not None
+        
+        if has_class and has_level:
+            # [W][1] = 5 символов
+            suffix_length = 5
+        elif has_class:
+            # [W] = 3 символа
+            suffix_length = 3
+        elif has_level:
+            # [1] = 3 символа
+            suffix_length = 3
+
+        # Расчет доступного места для имени
+        available_space = max_x_position - current_x_position - suffix_length
+        available_space = max(0, available_space)
+
+        # Обрезка имени
+        character_name = getattr(character, 'name', '')
+        display_name = ""
+        
+        if available_space >= MIN_LENGTH_FOR_DOTS:
+            if len(character_name) <= available_space:
+                display_name = character_name
+            else:
+                display_name = character_name[:available_space - EFFECT_DOTS_LENGTH] + ".."
+        elif available_space == MIN_LENGTH_FOR_DOT:
+            display_name = "." if len(character_name) > 0 else ""
+
+        # Отрисовка имени
+        if display_name:
+            try:
+                if current_x_position < max_x_position:
+                    end_x = min(current_x_position + len(display_name), max_x_position)
+                    text_to_draw = display_name[:end_x - current_x_position]
+                    screen.addstr(position_y, current_x_position, text_to_draw, final_name_color_pair)
+                    current_x_position += len(text_to_draw)
+            except curses.error:
+                pass
+
+        # Отрисовка суффиксов
+        class_icon = getattr(character, 'class_icon', '')
+        character_level = getattr(character, 'level', None)
+        
+        if class_icon and character_level is not None:
+            # [W][1]
+            level_str = str(character_level)
+            if current_x_position + 5 + len(level_str) <= max_x_position:
+                try:
+                    screen.addstr(position_y, current_x_position, " [", white_color_pair)
+                    screen.addstr(position_y, current_x_position + 2, class_icon, 
+                                get_color_pair(getattr(character, 'class_icon_color', COLOR_WHITE)))
+                    screen.addstr(position_y, current_x_position + 3, "][", white_color_pair)
+                    screen.addstr(position_y, current_x_position + 5, level_str, yellow_color_pair)
+                    screen.addstr(position_y, current_x_position + 5 + len(level_str), "]", white_color_pair)
+                    current_x_position += 6 + len(level_str)
+                except curses.error:
+                    pass
+        elif class_icon:
+            # [W]
+            if current_x_position + 4 <= max_x_position:
+                try:
+                    screen.addstr(position_y, current_x_position, " [", white_color_pair)
+                    screen.addstr(position_y, current_x_position + 2, class_icon, 
+                                get_color_pair(getattr(character, 'class_icon_color', COLOR_WHITE)))
+                    screen.addstr(position_y, current_x_position + 3, "]", white_color_pair)
+                    current_x_position += 4
+                except curses.error:
+                    pass
+        elif character_level is not None:
+            # [1]
+            level_str = str(character_level)
+            if current_x_position + 3 + len(level_str) <= max_x_position:
+                try:
+                    screen.addstr(position_y, current_x_position, " [", white_color_pair)
+                    screen.addstr(position_y, current_x_position + 2, level_str, yellow_color_pair)
+                    screen.addstr(position_y, current_x_position + 2 + len(level_str), "]", white_color_pair)
+                    current_x_position += 3 + len(level_str)
+                except curses.error:
+                    pass
+
+        return current_x_position
+
+    @staticmethod
+    def _draw_monster_name(screen, position_y: int, position_x: int, max_x_position: int, character,
+                          white_color_pair, yellow_color_pair, final_name_color_pair) -> int:
+        """Отрисовка имени монстра с уровнем: Бешеный мутант [1]"""
+        current_x_position = position_x
+        
+        # Расчет длины суффикса
+        suffix_length = 0
+        has_level = getattr(character, 'level', None) is not None
+        if has_level:
+            suffix_length = 3  # [1]
+
+        # Расчет доступного места для имени
+        available_space = max_x_position - current_x_position - suffix_length
+        available_space = max(0, available_space)
+
+        # Обрезка имени
+        character_name = getattr(character, 'name', '')
+        display_name = ""
+        
+        if available_space >= MIN_LENGTH_FOR_DOTS:
+            if len(character_name) <= available_space:
+                display_name = character_name
+            else:
+                display_name = character_name[:available_space - EFFECT_DOTS_LENGTH] + ".."
+        elif available_space == MIN_LENGTH_FOR_DOT:
+            display_name = "." if len(character_name) > 0 else ""
+
+        # Отрисовка имени
+        if display_name:
+            try:
+                if current_x_position < max_x_position:
+                    end_x = min(current_x_position + len(display_name), max_x_position)
+                    text_to_draw = display_name[:end_x - current_x_position]
+                    screen.addstr(position_y, current_x_position, text_to_draw, final_name_color_pair)
+                    current_x_position += len(text_to_draw)
+            except curses.error:
+                pass
+
+        # Отрисовка уровня
+        character_level = getattr(character, 'level', None)
+        if character_level is not None:
+            level_str = str(character_level)
+            if current_x_position + 3 + len(level_str) <= max_x_position:
+                try:
+                    screen.addstr(position_y, current_x_position, " [", white_color_pair)
+                    screen.addstr(position_y, current_x_position + 2, level_str, yellow_color_pair)
+                    screen.addstr(position_y, current_x_position + 2 + len(level_str), "]", white_color_pair)
+                    current_x_position += 3 + len(level_str)
+                except curses.error:
+                    pass
 
         return current_x_position
 
@@ -212,7 +301,7 @@ class DrawCharacter:
             current_value=display_energy_value,
             max_value=max_energy,
             bar_width=bar_width,
-            bar_color=ENERGY_BAR_COLOR,  # Предполагается, что цвет 7 — синий (энергия)
+            bar_color=ENERGY_BAR_COLOR,
             show_percent=False,
             show_values=False
         )
@@ -294,6 +383,7 @@ class DrawCharacter:
         # 1. Имя
         current_x_position = cls.draw_character_name(screen, position_y, current_x_position, character)
         current_x_position += DEFAULT_SPACING
+
         # 2. HP
         current_x_position = cls.draw_hp_bar(screen, position_y, current_x_position, character, HP_BAR_WIDTH)
         current_x_position += DEFAULT_SPACING
@@ -304,3 +394,4 @@ class DrawCharacter:
 
         # 4. Эффекты
         cls.draw_status_effects(screen, position_y, current_x_position, character, max_width=STATUS_EFFECTS_MAX_WIDTH)
+        return current_x_position
