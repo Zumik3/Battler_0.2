@@ -2,9 +2,9 @@
 
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
-from Characters.Abilities.abilities import Ability, AbilityResult
+from Characters.Abilities.abilities import ActiveAbility, AbilityResult
 
-class SplashAttack(Ability):
+class SplashAttack(ActiveAbility):
     """Способность: Атака по области (сплэш)"""
     
     def __init__(self):

@@ -2,6 +2,7 @@
 
 import os
 import importlib.util
+from abc import ABC, abstractmethod
 from Config.game_config import ABILITIES_PATH
 
 class AbilityResult:
@@ -23,12 +24,63 @@ class AbilityResult:
         self.reason = ""  # Причина неудачи
         self.details = {}  # Для дополнительной информации
 
-class Ability:
-    """Базовый класс для способностей"""
+class Ability(ABC):
+    """Абстрактный базовый класс для способностей - нельзя создавать напрямую"""
+    
+    def __init__(self, name, type=0, description="", icon=""):
+        """
+        Инициализация способности.
+        
+        :param name: Название способности
+        :param type: Тип способности - 0 - атака, 1 - лечение, 2 - отдых и т.д.
+        :param description: Описание способности
+        :param icon: Иконка способности
+        """
+        self.name = name
+        self.type = type
+        self.level = 0  # Уровень способности (0 = недоступна)
+        self.description = description
+        self.icon = icon
+    
+    def level_up(self):
+        """Повышает уровень способности на 1"""
+        self.level += 1
+        return self.level
+    
+    def set_level(self, level):
+        """Устанавливает уровень способности"""
+        self.level = max(0, level)  # Уровень не может быть меньше 0
+        return self.level
+    
+    def is_available(self):
+        """Проверяет, доступна ли способность (уровень > 0)"""
+        return self.level > 0
+    
+    def get_info(self):
+        """Возвращает информацию о способности."""
+        return {
+            'name': self.name,
+            'type': self.type,
+            'description': self.description,
+            'level': self.level
+        }
+    
+    @abstractmethod
+    def can_use(self, character, targets=None):
+        """Абстрактный метод проверки возможности использования"""
+        pass
+    
+    @abstractmethod
+    def use(self, character, targets, **kwargs):
+        """Абстрактный метод использования способности"""
+        pass
+
+class ActiveAbility(Ability):
+    """Активная способность - может быть использована игроком"""
     
     def __init__(self, name, type=0, damage_scale=0.0, cooldown=1, energy_cost=0, description="", icon="", is_mass=False):
         """
-        Инициализация способности.
+        Инициализация активной способности.
         
         :param name: Название способности
         :param type: Тип способности - 0 - атака, 1 - лечение, 2 - отдых и т.д.
@@ -39,25 +91,25 @@ class Ability:
         :param icon: Иконка способности
         :param is_mass: Массовая способность
         """
-        self.name = name
-        self.type = type # Тип способности - 0 - атака, 1 - лечение, 2 - отдых и т.д.
-        self.is_mass = is_mass
+        super().__init__(name, type, description, icon)
         self.damage_scale = damage_scale
-        self.cooldown = cooldown # чтобы была задержка 1 ход - указываем 2
-        self.current_cooldown = 0
         self.energy_cost = energy_cost
-        self.description = description
-        self.icon = icon
-        
+        self.is_mass = is_mass
+        self.cooldown = cooldown
+        self.current_cooldown = 0
     
     def can_use(self, character, targets=None):
         """
-        Проверяет, может ли персонаж использовать способность.
+        Проверяет, может ли персонаж использовать активную способность.
         
         :param character: Персонаж, который хочет использовать способность
         :param targets: Цели (опционально)
         :return: True, если можно использовать, иначе False
         """
+        # Проверяем уровень способности
+        if self.level <= 0:
+            return False
+            
         # Проверяем кулдаун
         if self.current_cooldown > 0:
             return False
@@ -78,7 +130,7 @@ class Ability:
     
     def use(self, character, targets, **kwargs):
         """
-        Использует способность.
+        Использует активную способность.
         
         :param character: Персонаж, использующий способность
         :param targets: Список целей
@@ -118,7 +170,6 @@ class Ability:
         """Обновляет кулдаун способности в конце раунда."""
         if self.current_cooldown > 0:
             self.current_cooldown -= 1
-
     
     def on_use(self, character, targets, result):
         """
@@ -128,16 +179,55 @@ class Ability:
         pass
     
     def get_info(self):
-        """Возвращает информацию о способности."""
-        return {
-            'name': self.name,
-            'type': self.type,
+        """Возвращает информацию о активной способности."""
+        info = super().get_info()
+        info.update({
             'damage_scale': self.damage_scale,
-            'cooldown': self.cooldown,
-            'current_cooldown': self.current_cooldown,
             'energy_cost': self.energy_cost,
-            'description': self.description
-        }
+            'is_mass': self.is_mass,
+            'cooldown': self.cooldown,
+            'current_cooldown': self.current_cooldown
+        })
+        return info
+
+class PassiveAbility(Ability):
+    """Пассивная способность - работает автоматически, не требует активации"""
+    
+    def __init__(self, name, type=0, description="", icon=""):
+        """
+        Инициализация пассивной способности.
+        
+        :param name: Название способности
+        :param type: Тип способности
+        :param description: Описание способности
+        :param icon: Иконка способности
+        """
+        super().__init__(name, type, description, icon)
+    
+    def can_use(self, character, targets=None):
+        """
+        Пассивные способности всегда доступны если имеют уровень > 0.
+        Используются автоматически системой.
+        """
+        return self.is_available()
+    
+    def use(self, character, targets, **kwargs):
+        """
+        Пассивные способности не могут быть использованы напрямую.
+        """
+        result = AbilityResult()
+        result.success = False
+        result.reason = "Пассивные способности нельзя использовать напрямую"
+        result.ability_type = self.__class__.__name__.lower()
+        result.character = character.name if hasattr(character, 'name') else str(character)
+        return result
+    
+    def apply_effect(self, character, **kwargs):
+        """
+        Применяет эффект пассивной способности.
+        Переопределяется в подклассах.
+        """
+        raise NotImplementedError("Метод apply_effect должен быть реализован в подклассе")
 
 # === Singleton AbilityLoader ===
 
@@ -220,8 +310,9 @@ class AbilityManager:
     """Менеджер способностей персонажа"""
     
     def __init__(self):
-        # Один словарь, хранящий отдельные экземпляры способностей для каждого персонажа
-        self.abilities = {}  # {name: Ability instance}
+        # Разделяем активные и пассивные способности
+        self.active_abilities = {}  # {name: ActiveAbility instance}
+        self.passive_abilities = {}  # {name: PassiveAbility instance}
         # Получаем singleton instance AbilityLoader
         self.ability_loader = AbilityLoader.get_instance()
         # Добавляем базовые способности по умолчанию
@@ -237,9 +328,14 @@ class AbilityManager:
                 # Копируем все атрибуты
                 for attr, value in ability_instance.__dict__.items():
                     setattr(new_ability, attr, value)
-                self.abilities[name] = new_ability
             else:
-                self.abilities[name] = ability_instance
+                new_ability = ability_instance
+                
+            # Добавляем в соответствующий словарь
+            if isinstance(new_ability, PassiveAbility):
+                self.passive_abilities[name] = new_ability
+            elif isinstance(new_ability, ActiveAbility):
+                self.active_abilities[name] = new_ability
             return True
         except Exception as e:
             print(f"Error adding ability '{name}': {e}")
@@ -247,61 +343,103 @@ class AbilityManager:
     
     def remove_ability(self, name):
         """Удаляет способность по имени."""
-        if name in self.abilities:
-            del self.abilities[name]
+        if name in self.active_abilities:
+            del self.active_abilities[name]
+            return True
+        elif name in self.passive_abilities:
+            del self.passive_abilities[name]
             return True
         return False
     
     def clear_abilities(self):
         """Удаляет все способности."""
-        self.abilities.clear()
+        self.active_abilities.clear()
+        self.passive_abilities.clear()
     
     def get_ability(self, name):
         """Получает способность по имени."""
-        return self.abilities.get(name)
+        if name in self.active_abilities:
+            return self.active_abilities[name]
+        elif name in self.passive_abilities:
+            return self.passive_abilities[name]
+        return None
+    
+    def get_active_ability(self, name):
+        """Получает активную способность по имени."""
+        return self.active_abilities.get(name)
+    
+    def get_passive_ability(self, name):
+        """Получает пассивную способность по имени."""
+        return self.passive_abilities.get(name)
     
     def get_all_abilities(self):
         """Возвращает все способности персонажа."""
-        return list(self.abilities.values())
+        return list(self.active_abilities.values()) + list(self.passive_abilities.values())
+    
+    def get_active_abilities(self):
+        """Возвращает все активные способности персонажа."""
+        return list(self.active_abilities.values())
+    
+    def get_passive_abilities(self):
+        """Возвращает все пассивные способности персонажа."""
+        return list(self.passive_abilities.values())
     
     def get_all_ability_names(self):
         """Возвращает имена всех способностей персонажа."""
-        return list(self.abilities.keys())
+        return list(self.active_abilities.keys()) + list(self.passive_abilities.keys())
+    
+    def get_active_ability_names(self):
+        """Возвращает имена всех активных способностей персонажа."""
+        return list(self.active_abilities.keys())
+    
+    def get_passive_ability_names(self):
+        """Возвращает имена всех пассивных способностей персонажа."""
+        return list(self.passive_abilities.keys())
     
     def get_available_abilities(self, character):
         """
-        Возвращает список ссылок на способности, которые сейчас доступны.
+        Возвращает список ссылок на активные способности, которые сейчас доступны.
         :param character: Персонаж для проверки условий
-        :return: Список доступных способностей (Ability instances)
+        :return: Список доступных способностей (ActiveAbility instances)
         """
-        return [ability for ability in self.abilities.values() if ability.can_use(character)]
+        return [ability for ability in self.active_abilities.values() if ability.can_use(character)]
     
     def get_available_ability_names(self, character):
         """
-        Возвращает список имен способностей, которые сейчас доступны.
+        Возвращает список имен активных способностей, которые сейчас доступны.
         :param character: Персонаж для проверки условий
         :return: Список имен доступных способностей
         """
-        return [name for name, ability in self.abilities.items() if ability.can_use(character)]
+        return [name for name, ability in self.active_abilities.items() if ability.can_use(character)]
+    
+    def get_available_passive_abilities(self, character):
+        """
+        Возвращает список ссылок на пассивные способности, которые сейчас доступны.
+        :param character: Персонаж для проверки условий
+        :return: Список доступных пассивных способностей (PassiveAbility instances)
+        """
+        return [ability for ability in self.passive_abilities.values() if ability.is_available()]
     
     def use_ability(self, ability, character, targets, **kwargs):
-        """Использует способность напрямую."""
-        if ability and ability.can_use(character, targets):
+        """Использует активную способность напрямую."""
+        if ability and isinstance(ability, ActiveAbility) and ability.can_use(character, targets):
             return ability.use(character, targets, **kwargs)
         result = AbilityResult()
         result.success = False
-        result.reason = "Способность недоступна"
+        result.reason = "Способность недоступна или не является активной"
         return result
     
     def update_cooldowns(self):
-        """Обновляет кулдауны всех способностей в конце раунда."""
-        for ability in self.abilities.values():
-            ability.update_cooldown()
+        """Обновляет кулдауны всех активных способностей в конце раунда."""
+        for ability in self.active_abilities.values():
+            if hasattr(ability, 'update_cooldown'):
+                ability.update_cooldown()
 
     def reset_all_cooldowns(self):
-        """Сбрасывает все кулдауны способностей до 0."""
-        for ability in self.abilities.values():
-            ability.current_cooldown = 0
+        """Сбрасывает все кулдауны активных способностей до 0."""
+        for ability in self.active_abilities.values():
+            if hasattr(ability, 'current_cooldown'):
+                ability.current_cooldown = 0
     
     def create_ability_by_name(self, ability_name):
         """
@@ -332,6 +470,31 @@ class AbilityManager:
             name_key = ability_name.lower()
             return self.add_ability(name_key, ability_instance)
         return False
+    
+    def level_up_ability(self, ability_name):
+        """
+        Повышает уровень способности на 1.
+        
+        :param ability_name: Имя способности
+        :return: Новый уровень способности или -1 если способность не найдена
+        """
+        ability = self.get_ability(ability_name)
+        if ability:
+            return ability.level_up()
+        return -1
+    
+    def set_ability_level(self, ability_name, level):
+        """
+        Устанавливает уровень способности.
+        
+        :param ability_name: Имя способности
+        :param level: Новый уровень
+        :return: Новый уровень способности или -1 если способность не найдена
+        """
+        ability = self.get_ability(ability_name)
+        if ability:
+            return ability.set_level(level)
+        return -1
 
 # Удобная функция для получения AbilityLoader
 def get_ability_loader():

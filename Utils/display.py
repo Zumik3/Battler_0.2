@@ -9,10 +9,11 @@ from Config.curses_config import (
     COLOR_WHITE,
     COLOR_MAGENTA,
     COLOR_GREEN,
-    COLOR_YELLOW  # Добавлен для использования в заголовке "ГЕРОИ"
+    COLOR_YELLOW
 )
 from Inventory.inventory import get_inventory
-from Utils.UI.draw_character import DrawCharacter  # Импортируем наш новый класс
+from Utils.UI.draw_character import DrawCharacter
+from Utils.UI.key_hints import INVENTORY_HINTS, MAIN_HINTS
 
 
 def create_screen_observer(stdscr, command_handler):
@@ -27,7 +28,6 @@ def update_display(stdscr, command_handler):
     """Обновляет отображение экрана"""
     try:
         height, width = stdscr.getmaxyx()
-        input_str = command_handler.get_input()
 
         # Очищаем экран
         stdscr.clear()
@@ -48,10 +48,8 @@ def update_display(stdscr, command_handler):
         stdscr.addstr(log_start_y + 1, 2, "📜 ЛОГ БОЯ:", get_color_pair(COLOR_WHITE) | curses.A_BOLD)
         display_log(stdscr, width, height, log_start_y)
 
-        # === ОБЛАСТЬ ВВОДА ===
-        input_y = height - 2
-        stdscr.addstr(input_y, 0, "─" * (width - 1), get_color_pair(COLOR_GRAY) | curses.A_DIM)
-        stdscr.addstr(input_y + 1, 0, f"❱ {input_str}", get_color_pair(COLOR_WHITE) | curses.A_BOLD)
+        # === ПОДСКАЗКИ В НИЖНЕЙ ЧАСТИ ===
+        MAIN_HINTS.display_hints(stdscr)
 
     except curses.error:
         pass  # Игнорируем ошибки отрисовки (например, при ресайзе)
@@ -82,13 +80,13 @@ def display_characters(stdscr, players, enemies, width, height):
 
 def display_log(stdscr, width, height, log_start_y):
     """Отображает лог боя"""
-    log_height = height - log_start_y - 5
+    log_height = height - log_start_y - 10  # Увеличиваем отступ для подсказок
     log_lines = battle_logger.get_lines()
 
     if log_lines:
         visible_log_lines = log_lines[-log_height:] if len(log_lines) > log_height else log_lines
         for i, line in enumerate(visible_log_lines):
-            if log_start_y + 2 + i >= height - 3:
+            if log_start_y + 2 + i >= height - 7:  # Учитываем подсказки
                 break
 
             display_line = line[:width - 4]
@@ -109,8 +107,13 @@ def display_log(stdscr, width, height, log_start_y):
 
 
 def display_inventory_screen(stdscr, players):
-    """Отображает экран инвентаря на весь экран"""
+    """Отображает экран инвентаря на весь экран с вкладками персонажей"""
     inventory = get_inventory()
+    
+    if not players:
+        return
+
+    current_tab = 0
 
     while True:
         try:
@@ -122,30 +125,31 @@ def display_inventory_screen(stdscr, players):
                          get_color_pair(COLOR_CYAN) | curses.A_BOLD)
             stdscr.addstr(1, 0, "─" * (width - 1), get_color_pair(COLOR_GRAY) | curses.A_DIM)
 
-            # === БЛОК 1: ХАРАКТЕРИСТИКИ ГЕРОЕВ (2 в ряд) ===
-            stdscr.addstr(2, 2, "👥 ГЕРОИ",
-                         get_color_pair(COLOR_YELLOW) | curses.A_BOLD)  # Теперь COLOR_YELLOW доступен
+            # Вкладки с именами персонажей
+            tab_x = 2
+            for i, player in enumerate(players):
+                if i == current_tab:
+                    # Активная вкладка
+                    stdscr.attron(get_color_pair(COLOR_CYAN) | curses.A_BOLD)
+                    stdscr.addstr(2, tab_x, f" [{player.name}] ")
+                    stdscr.attroff(get_color_pair(COLOR_CYAN) | curses.A_BOLD)
+                else:
+                    # Неактивная вкладка
+                    stdscr.attron(get_color_pair(COLOR_WHITE))
+                    stdscr.addstr(2, tab_x, f" {player.name} ")
+                    stdscr.attroff(get_color_pair(COLOR_WHITE))
+                tab_x += len(player.name) + 4
+
             stdscr.addstr(3, 0, "─" * (width - 1), get_color_pair(COLOR_GRAY) | curses.A_DIM)
 
-            heroes_per_row = 2
-            hero_width = width // heroes_per_row - 2
-            max_hero_rows = 0
-
-            for i, player in enumerate(players):
-                row = i // heroes_per_row
-                col = i % heroes_per_row
-
-                hero_x = col * hero_width + 2
-                hero_y = 4 + row * 6
-                max_hero_rows = max(max_hero_rows, row + 1)
-
-                if hero_y + 5 < height - 4:
-                    display_hero_stats_in_inventory(stdscr, player, hero_y, hero_x, hero_width)
+            # Отображение характеристик текущего персонажа
+            current_player = players[current_tab]
+            
+            # === БЛОК 1: ХАРАКТЕРИСТИКИ ТЕКУЩЕГО ГЕРОЯ ===
+            display_hero_stats_in_inventory(stdscr, current_player, 4, 2, width - 4)
 
             # === БЛОК 2: ИНВЕНТАРЬ ===
-            inventory_start_y = 4 + max_hero_rows * 6
-            if len(players) == 0:
-                inventory_start_y = 4
+            inventory_start_y = 11
 
             stdscr.addstr(inventory_start_y, 2, "🧳 ИНВЕНТАРЬ",
                          get_color_pair(COLOR_MAGENTA) | curses.A_BOLD)
@@ -201,17 +205,19 @@ def display_inventory_screen(stdscr, players):
             if item_index == 0:
                 stdscr.addstr(inventory_start_y + 3, 4, "Инвентарь пуст", get_color_pair(COLOR_GRAY))
 
-            # Подсказка выхода
-            stdscr.addstr(height - 2, 0, "─" * (width - 1), get_color_pair(COLOR_GRAY) | curses.A_DIM)
-            stdscr.addstr(height - 1, 2, "Введите 'exit', 'quit' или 'q' для выхода",
-                         get_color_pair(COLOR_GRAY) | curses.A_DIM)
+            # Подсказка по клавишам внизу
+            INVENTORY_HINTS.display_hints(stdscr)
 
             stdscr.refresh()
 
             # Обработка ввода
             key = stdscr.getch()
-            if key == 27:  # ESC
+            if key == ord('q') or key == ord('Q'):
                 break
+            elif key == curses.KEY_LEFT:
+                current_tab = (current_tab - 1) % len(players)
+            elif key == curses.KEY_RIGHT:
+                current_tab = (current_tab + 1) % len(players)
             elif key == curses.KEY_RESIZE:
                 continue
             elif key != -1:
@@ -231,45 +237,76 @@ def display_inventory_screen(stdscr, players):
 def display_hero_stats_in_inventory(stdscr, player, y, x, max_width):
     """Отображает характеристики героя в инвентаре (без баров, только текст)"""
     try:
-        height, width = stdscr.getmaxyx()  # ✅ Теперь переменные определены
+        height, width = stdscr.getmaxyx()
 
-        name = player.name[:20] if len(player.name) > 20 else player.name
         hp_text = f"HP: {player.hp}/{player.derived_stats.max_hp}"
         energy_text = f"Энергия: {player.energy}/{player.derived_stats.max_energy}"
 
-        # Первая строка: имя + HP + Energy
-        stdscr.addstr(y, x, name, get_color_pair(COLOR_GREEN) | curses.A_BOLD)
-        stdscr.addstr(y, x + len(name), f" {hp_text}  {energy_text}", get_color_pair(COLOR_CYAN) | curses.A_BOLD)
+        # Заголовок с HP и Энергией
+        stdscr.addstr(y, x, "👥 ХАРАКТЕРИСТИКИ ГЕРОЯ", get_color_pair(COLOR_YELLOW) | curses.A_BOLD)
+        stdscr.addstr(y, x + 30, f"{hp_text}  {energy_text}", get_color_pair(COLOR_CYAN) | curses.A_BOLD)
 
-        # Левая колонка
-        left_x = x
-        level_text = f"Уровень: {getattr(player, 'level', 'N/A')}"
-        stdscr.addstr(y + 1, left_x, level_text)
+        # Фиксированные позиции для колонок (увеличенные отступы)
+        label_col_x = x          # Колонка меток
+        value_col_x = x + 18     # Колонка значений (увеличено с 15 до 18)
+        stat_label_col_x = x + 28 # Колонка меток доп. характеристик (увеличено с 25 до 28)
+        stat_value_col_x = x + 42 # Колонка значений доп. характеристик (увеличено с 35 до 42)
+        equip_col_x = x + 55     # Колонка экипировки (увеличено с 50 до 55)
 
+        # === Основные характеристики ===
+        # Уровень
+        stdscr.addstr(y + 1, label_col_x, "Уровень:", get_color_pair(COLOR_WHITE))
+        level_value = str(getattr(player, 'level', 'N/A'))
+        stdscr.addstr(y + 1, value_col_x, level_value, get_color_pair(COLOR_YELLOW))
+
+        # Опыт
+        stdscr.addstr(y + 2, label_col_x, "Опыт:", get_color_pair(COLOR_WHITE))
         if hasattr(player, 'exp'):
-            exp_text = f"Опыт: {player.exp}"
+            exp_value = str(player.exp)
             if hasattr(player, 'exp_to_next_level'):
-                exp_text += f"/{player.exp_to_next_level}"
-            stdscr.addstr(y + 2, left_x, exp_text)
+                exp_value += f"/{player.exp_to_next_level}"
+        else:
+            exp_value = 'N/A'
+        stdscr.addstr(y + 2, value_col_x, exp_value, get_color_pair(COLOR_YELLOW))
 
-        attack_text = f"Атака: {getattr(player.derived_stats, 'attack', 'N/A')}"
-        stdscr.addstr(y + 3, left_x, attack_text)
+        # Атака
+        stdscr.addstr(y + 3, label_col_x, "Атака:", get_color_pair(COLOR_WHITE))
+        attack_value = str(getattr(player.derived_stats, 'attack', 'N/A'))
+        stdscr.addstr(y + 3, value_col_x, attack_value, get_color_pair(COLOR_YELLOW))
 
-        defense_text = f"Защита: {getattr(player.derived_stats, 'defense', 'N/A')}"
-        stdscr.addstr(y + 4, left_x, defense_text)
+        # Защита
+        stdscr.addstr(y + 4, label_col_x, "Защита:", get_color_pair(COLOR_WHITE))
+        defense_value = str(getattr(player.derived_stats, 'defense', 'N/A'))
+        stdscr.addstr(y + 4, value_col_x, defense_value, get_color_pair(COLOR_YELLOW))
 
-        # Правая колонка
-        right_x = x + max_width // 2
+        # === Дополнительные характеристики ===
         stats = getattr(player, 'stats', None)
-        if stats:
-            if hasattr(stats, 'strength'):
-                stdscr.addstr(y + 1, right_x, f"Сила: {stats.strength}")
-            if hasattr(stats, 'dexterity'):
-                stdscr.addstr(y + 2, right_x, f"Ловкость: {stats.dexterity}")
-            if hasattr(stats, 'intelligence'):
-                stdscr.addstr(y + 3, right_x, f"Интеллект: {stats.intelligence}")
-            if hasattr(stats, 'constitution'):
-                stdscr.addstr(y + 4, right_x, f"Выносливость: {stats.constitution}")
+        
+        # Сила
+        stdscr.addstr(y + 1, stat_label_col_x, "Сила:", get_color_pair(COLOR_WHITE))
+        strength_value = str(getattr(stats, 'strength', 'N/A')) if stats else 'N/A'
+        stdscr.addstr(y + 1, stat_value_col_x, strength_value, get_color_pair(COLOR_YELLOW))
+
+        # Ловкость
+        stdscr.addstr(y + 2, stat_label_col_x, "Ловкость:", get_color_pair(COLOR_WHITE))
+        dexterity_value = str(getattr(stats, 'dexterity', 'N/A')) if stats else 'N/A'
+        stdscr.addstr(y + 2, stat_value_col_x, dexterity_value, get_color_pair(COLOR_YELLOW))
+
+        # Интеллект
+        stdscr.addstr(y + 3, stat_label_col_x, "Интеллект:", get_color_pair(COLOR_WHITE))
+        intelligence_value = str(getattr(stats, 'intelligence', 'N/A')) if stats else 'N/A'
+        stdscr.addstr(y + 3, stat_value_col_x, intelligence_value, get_color_pair(COLOR_YELLOW))
+
+        # Выносливость
+        stdscr.addstr(y + 4, stat_label_col_x, "Выносливость:", get_color_pair(COLOR_WHITE))
+        constitution_value = str(getattr(stats, 'constitution', 'N/A')) if stats else 'N/A'
+        stdscr.addstr(y + 4, stat_value_col_x, constitution_value, get_color_pair(COLOR_YELLOW))
+
+        # === Экипировка ===
+        stdscr.addstr(y + 1, equip_col_x, "Оружие: ---", get_color_pair(COLOR_GRAY))
+        stdscr.addstr(y + 2, equip_col_x, "Броня: ---", get_color_pair(COLOR_GRAY))
+        stdscr.addstr(y + 3, equip_col_x, "Аксессуар: ---", get_color_pair(COLOR_GRAY))
+        stdscr.addstr(y + 4, equip_col_x, "Расходник: ---", get_color_pair(COLOR_GRAY))
 
         # Разделитель
         if y + 5 < height:

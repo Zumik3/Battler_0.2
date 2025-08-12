@@ -2,9 +2,9 @@
 
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
-from Characters.Abilities.abilities import Ability, AbilityResult
+from Characters.Abilities.abilities import ActiveAbility, AbilityResult
 
-class Attack(Ability):
+class Attack(ActiveAbility):
     """Базовая атака персонажа"""
     
     def __init__(self):
@@ -16,6 +16,7 @@ class Attack(Ability):
             description="Базовая атака противника",
             icon="⚔️"
         )
+        self.set_level(1)
     
     def execute(self, character, targets, **kwargs):
         """Выполняет базовую атаку по одной цели."""
