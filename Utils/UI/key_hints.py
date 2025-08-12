@@ -124,19 +124,22 @@ class MainWindowHints(KeyHints):
     """Подсказки для основного окна игры"""
     
     def get_hints(self) -> List[Tuple[str, int]]:
+        
+        hints_dict = {
+            "Enter": "Начать бой",
+            "I": "Инвентарь", 
+            "S": "Умения",
+            "R": "Магазин",
+            "F12": "Статистика",
+            "H": "Помощь",
+            "C": "Очистить лог",
+            "Q": "Выход"
+        }
+        
         return [
-            ("Enter", self.hint_color),
-            ("Начать бой", self.hint_color),
-            ("I", self.hint_color),
-            ("Инвентарь", self.hint_color),
-            ("S", self.hint_color),
-            ("Умения", self.hint_color),
-            ("H", self.hint_color),
-            ("Помощь", self.hint_color),
-            ("C", self.hint_color),
-            ("Очистить лог", self.hint_color),
-            ("Q", self.hint_color),
-            ("Выход", self.hint_color)
+            item 
+            for key, desc in hints_dict.items() 
+            for item in [(key, self.hint_color), (desc, self.hint_color)]
         ]
 
 
@@ -164,9 +167,7 @@ class AbilitiesHints(KeyHints):
             ("Q", self.hint_color),
             ("Назад", self.hint_color)
         ]
-            #stdscr.addstr(height - 2, 0, "─" * (width - 1), get_color_pair(COLOR_GRAY) | curses.A_DIM)
-            #stdscr.addstr(height - 1, 2, "← → : переключение вкладок  |  ↑/↓ : навигация по умениям  |  Q : выход",
-            #             get_color_pair(COLOR_GRAY) | curses.A_DIM)
+
 
 class ShopHints(KeyHints):
     """Подсказки для окна магазина"""
@@ -194,9 +195,24 @@ class BattleHints(KeyHints):
         ]
 
 
+class StatisticHints(KeyHints):
+    """Подсказки для окон статистики"""
+    
+    def get_hints(self) -> List[Tuple[str, int]]:
+        return [
+            ("↑↓", self.hint_color),
+            ("Навигация", self.hint_color),
+            ("Enter", self.hint_color),
+            ("Выбрать", self.hint_color),
+            ("Q", self.hint_color),
+            ("Назад", self.hint_color)
+        ]
+
+
 # Глобальные экземпляры для удобного использования
 MAIN_HINTS: MainWindowHints = MainWindowHints()
 INVENTORY_HINTS: InventoryHints = InventoryHints()
 ABILITIES_HINTS: AbilitiesHints = AbilitiesHints()
 SHOP_HINTS: ShopHints = ShopHints()
 BATTLE_HINTS: BattleHints = BattleHints()
+STATISTICS_HINTS: StatisticHints = StatisticHints()

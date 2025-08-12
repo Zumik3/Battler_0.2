@@ -9,24 +9,7 @@ if TYPE_CHECKING:
 
 from Battle.battle_statistics import get_battle_statistics
 from Utils.UI.window import AbstractWindow
-
-class StatsHints:
-    """Класс для отображения подсказок по клавишам для окон статистики"""
-    
-    @staticmethod
-    def display_hints(stdscr) -> None:
-        """Отображает подсказки по клавишам внизу экрана"""
-        try:
-            height, width = stdscr.getmaxyx()
-            if height > 2:
-                hints = "Q/E/ESC - Выход | ↑↓ - Навигация | Enter - Выбрать"
-                stdscr.addstr(height - 2, 2, hints[:width - 4], curses.A_NORMAL)
-        except curses.error:
-            pass
-
-# Глобальный экземпляр подсказок
-STATS_HINTS = StatsHints()
-
+from Utils.UI.key_hints import STATISTICS_HINTS
 
 class GlobalStatsWindow(AbstractWindow):
     """Окно глобальной статистики"""
@@ -36,13 +19,10 @@ class GlobalStatsWindow(AbstractWindow):
         self.battle_stats = get_battle_statistics()
         self.selected_battle_index: int = 0
         self.battle_summaries: List['BattleSummaryRecord'] = []
-        self.hint_class = STATS_HINTS
+        self.hint_class = STATISTICS_HINTS
     
     def get_header_text(self) -> str:
         return "📊 ГЛОБАЛЬНАЯ СТАТИСТИКА"
-    
-    def get_key_hints(self) -> str:
-        return "Q/E/ESC - Выход | ↑↓ - Навигация | Enter - Выбрать"
     
     def _display_body(self) -> None:
         """Отображение основного содержимого - глобальная статистика и список битв"""
@@ -166,13 +146,10 @@ class BattleDetailWindow(AbstractWindow):
         self.battle_stats = get_battle_statistics()
         self.selected_action_index: int = 0
         self.detailed_actions: List['CombatActionRecord'] = []
-        self.hint_class = STATS_HINTS
+        self.hint_class = STATISTICS_HINTS
     
     def get_header_text(self) -> str:
         return f"📊 ДЕТАЛИ БИТВЫ {self.battle_record.battle_id}"
-    
-    def get_key_hints(self) -> str:
-        return "Q/E/ESC - Выход | ↑↓ - Навигация"
     
     def _display_body(self) -> None:
         """Отображение основного содержимого - общая информация о битве и детальные записи"""
