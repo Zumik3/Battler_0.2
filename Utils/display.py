@@ -59,36 +59,32 @@ def display_characters(stdscr, players, enemies, width):
     """Отображает персонажей на экране с помощью DrawCharacter"""
     
     # Определения позиций и заголовков
-    PLAYERS_HEADER_Y = 4
-    PLAYERS_HEADER_X = 2
-    PLAYERS_START_Y = 5
-    PLAYERS_START_X = 4
+    CHARACTER_START_X = 4
+    CHARACTER_START_Y = 4
+    CHARACTER_HEADER_Y = 3
+    CHARACTER_HEADER_X = 2
+
     PLAYERS_HEADER_TEXT = "🧍 Герои:"
-    
-    ENEMIES_HEADER_Y = 4
-    ENEMIES_HEADER_X_OFFSET = 2
-    ENEMIES_START_Y = 5
-    ENEMIES_START_X_OFFSET = 4
-    ENEMIES_HEADER_TEXT = "🎲 Событие:"
+    ENEMIES_HEADER_TEXT = "🎲 Событие: (схватка)" #TODO: доработать систему событий
     
     mid_x = width // 2
 
     # Заголовок игроков
-    stdscr.addstr(PLAYERS_HEADER_Y, PLAYERS_HEADER_X, PLAYERS_HEADER_TEXT, curses.A_BOLD)
+    stdscr.addstr(CHARACTER_HEADER_Y, CHARACTER_HEADER_X, PLAYERS_HEADER_TEXT, curses.A_BOLD)
 
     # Отрисовка игроков
     for i, char in enumerate(players):
-        y = PLAYERS_START_Y + i
-        x = PLAYERS_START_X
+        y = CHARACTER_START_Y + i
+        x = CHARACTER_START_X
         DrawCharacter.draw_character_row(stdscr, char, y, x, is_player=True)
 
     # Заголовок врагов
-    stdscr.addstr(ENEMIES_HEADER_Y, mid_x + ENEMIES_HEADER_X_OFFSET, ENEMIES_HEADER_TEXT, curses.A_BOLD)
+    stdscr.addstr(CHARACTER_HEADER_Y, mid_x + CHARACTER_HEADER_X, ENEMIES_HEADER_TEXT, curses.A_BOLD)
 
     # Отрисовка врагов
     for i, char in enumerate(enemies):
-        y = ENEMIES_START_Y + i
-        x = mid_x + ENEMIES_START_X_OFFSET
+        y = CHARACTER_START_Y + i
+        x = mid_x + CHARACTER_START_X
         DrawCharacter.draw_character_row(stdscr, char, y, x, is_player=False)
 
 

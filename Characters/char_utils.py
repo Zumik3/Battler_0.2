@@ -6,53 +6,6 @@ from Characters.namer import EnemyNamer
 from Characters.monster_classes import Goblin, Orc, Skeleton, Wizard, Troll  # Импортируем классы монстров
 
 
-def draw_character_name(stdscr, y, x, char):
-    """
-    Отображает имя персонажа с правильной расцветкой.
-    Иконка смерти включена в строку, длина поля保持 постоянной.
-    
-    :param stdscr: Окно curses для отрисовки
-    :param y: Координата Y
-    :param x: Координата X
-    :param char: Персонаж
-    :param base_color: Базовый цвет из Config.COLORS
-    """
-    name_width = Config.NAME_COLUMN_WIDTH
-    
-    # Формируем базовое имя с иконкой класса и уровнем
-    class_icon = getattr(char, 'class_icon', '')
-    level_str = f"[{char.level}]" if hasattr(char, 'level') else ""
-    
-    if class_icon:
-        base_name = f"{char.name} {class_icon} {level_str}".strip()
-    else:
-        base_name = f"{char.name} {level_str}".strip()
-
-    base_color = curses.COLOR_GREEN if char.is_player else curses.COLOR_BLUE
-    
-    # Если персонаж мёртв — добавляем иконку смерти
-    if char.hp <= 0:
-        # Используем ASCII символ вместо эмодзи для стабильной ширины
-        display_name = f"† {base_name}"  # Крест вместо эмодзи
-        name_color = curses.color_pair(8) if curses.COLORS >= 9 else curses.A_DIM
-    else:
-        display_name = base_name
-        name_color = curses.color_pair(base_color)
-    
-    # Обрезаем или дополняем до нужной длины
-    if len(display_name) > name_width:
-        # Обрезаем до name_width - 3 и добавляем "..."
-        display_name = display_name[:name_width-3] + "..."
-    else:
-        # Дополняем пробелами до нужной длины
-        display_name = display_name.ljust(name_width)
-    
-    # Выводим имя
-    try:
-        stdscr.addstr(y, x, display_name, name_color)
-    except curses.error:
-        pass
-
 # === Функции создания команд ===
 
 def create_player_team():

@@ -7,7 +7,6 @@ from Config.curses_config import BATTLE_DELAY
 from Characters.char_utils import create_enemies
 from Inventory.inventory import get_inventory
 from Utils.UI.Statistics.statistics_window import GlobalStatsWindow
-from Utils.UI.window import InventoryWindow
 from Utils.display import display_inventory_screen
 from Utils.UI.Skills.skills_window import display_abilities_screen
 
