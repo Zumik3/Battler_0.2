@@ -7,6 +7,7 @@ from Characters.Abilities.ability import ActiveAbility, AbilityResult
 from Characters.character import Character
 from Config.curses_config import COLOR_GREEN, COLOR_BLUE, COLOR_RED, COLOR_YELLOW
 from Config.game_config import DAMAGE_LIST_ICON
+from Utils.types import IApplyEffectResult
 
 class SlidingStrike(ActiveAbility):
     """Способность: Скользящий удар - проходит сквозь врагов, атакуя всех"""
@@ -21,6 +22,8 @@ class SlidingStrike(ActiveAbility):
             description="Проходит сквозь врагов, атакуя всех на пути",
             icon="🗡️"
         )
+        # Добавляем эффект отравления к списку возможных эффектов способности
+        self.add_effect_by_class_name("PoisonEffect")
     
     def execute(self, character: Character, targets: List[Character], **kwargs: Any) -> AbilityResult:
         """Выполняет скользящий удар по всем врагам."""
@@ -42,7 +45,7 @@ class SlidingStrike(ActiveAbility):
         base_damage: int = int(character.derived_stats.attack * self.damage_scale)
         
         # Создаем начальное сообщение
-        template: str = "%1 %2 совершает скользящий удар по всем врагам!"
+        template: str = "%1 %2 совершает скользящий удар по врагам!"
         elements: List[tuple] = [(self.icon, 0), (character.name, COLOR_GREEN)]
         result.messages = [battle_logger.create_log_message(template, elements)]
         
@@ -74,6 +77,12 @@ class SlidingStrike(ActiveAbility):
                 # Наносим урон цели
                 target.take_damage(actual_damage)
                 
+                # Применяем эффекты с определенным шансом
+                apply_effect_result_list: List[IApplyEffectResult] = []
+                if target.is_alive():
+                    apply_effect_result_list = self.apply_effects_with_chance(target, chance=0.7)  # 100% шанс наложить эффект
+
+
                 target_info['damage_dealt'] = actual_damage
                 target_info['damage_blocked'] = mechanics_results['blocked_damage']
                 target_info['is_critical'] = mechanics_results['critical_hit']
@@ -93,6 +102,9 @@ class SlidingStrike(ActiveAbility):
                                               (str(mechanics_results['blocked_damage']), COLOR_YELLOW)]
                 
                 result.messages.append(battle_logger.create_log_message(damage_template, damage_elements))
+
+                for apply_effect_result in apply_effect_result_list:
+                    result.messages.append(apply_effect_result.message)
             
             target_details[target.name] = target_info
         

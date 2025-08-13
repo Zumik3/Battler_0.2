@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional, TYPE_CHECKING, Type
 
+from Utils.types import IApplyEffectResult
+
 if TYPE_CHECKING:
     from Characters.character import Character
     from Characters.Status_effects.status_effect import Status_effect  # Предполагаемый импорт для типизации
@@ -193,6 +195,31 @@ class ActiveAbility(Ability):
                 # Если не удалось создать экземпляр, пропускаем
                 continue
         return instances
+
+    def apply_effects_with_chance(self, target: 'Character', chance: float = 1.0) -> List[IApplyEffectResult]:
+        """
+        Применяет все возможные эффекты способности с заданным шансом.
+        
+        :param target: Цель
+        :param chance: Шанс применения эффектов (0.0 - 1.0)
+        :return: Список результатов применения эффектов
+        """
+        import random
+        
+        # Проверяем шанс применения
+        if random.random() > chance:
+            return []
+            
+        # Создаем экземпляры эффектов с параметрами по умолчанию
+        effect_instances = self.get_effect_instances()
+        
+        apply_effect_results_list: List[IApplyEffectResult] = []
+        # Применяем каждый эффект
+        for effect in effect_instances:
+            apply_effect_result = target.status_manager.add_effect(effect, target)
+            apply_effect_results_list.append(apply_effect_result)
+
+        return apply_effect_results_list
     
     # ==================== Проверка возможности использования ====================
     def can_use(self, character: 'Character', targets: Optional[List['Character']] = None) -> bool:

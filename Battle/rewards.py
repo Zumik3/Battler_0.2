@@ -1,6 +1,5 @@
 # rewards.py - Система наград в игре
 
-import antigravity
 from typing import List, Dict, Any
 import random
 from Config.game_config import EXP_BASE, GOLD_BASE, EXP_VARIANCE, GOLD_VARIANCE

@@ -1,6 +1,5 @@
 # Characters/Status_effects/status_manager.py
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
-import importlib
 
 from Characters.Status_effects.status_effect import StackableStatusEffect
 from Utils.types import IApplyEffectResult
@@ -77,8 +76,8 @@ class StatusEffectManager:
         Получает эффект.
         :return: Экземпляр эффекта или None если не найден
         """
-        for effect in self.active_effects:
-            if effect.__class__ == effect.__class__:
+        for active_effect in self.active_effects:
+            if active_effect.__class__ == effect.__class__:
                 return effect
         return None
     
@@ -102,7 +101,8 @@ class StatusEffectManager:
         
         # Удаляем истекшие эффекты
         for effect in expired_effects:
-            self.active_effects.remove(effect)
+            if effect in self.active_effects:
+                self.active_effects.remove(effect)
             
         return results
     

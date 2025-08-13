@@ -126,7 +126,7 @@ class StackableStatusEffect(StatusEffect):
         :param icon: Иконка эффекта
         """
         super().__init__(name=name, duration=duration, description=description, icon=icon)
-        self.stacks: int = 1
+        self.stacks: int = 0
         self.max_stacks: int = 5  # Максимальное количество стаков по умолчанию
         
     def add_stack(self, stacks: int = 1) -> bool:

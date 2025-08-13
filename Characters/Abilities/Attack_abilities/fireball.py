@@ -19,14 +19,21 @@ class Fireball(ActiveAbility):
             damage_scale=0.8,  # средний урон
             cooldown=1,
             energy_cost=5,
-            description="Мощный огненный шар, наносящий огромный урон одной цели",
+            description="Мощный огненный шар, наносящий средний урон одной цели",
             icon="🔥"
         )
         # Добавляем эффект ожога к списку возможных эффектов способности
         self.add_effect_by_class_name("BurnEffect")
     
     def execute(self, character: Character, targets: List[Character], **kwargs: Any) -> AbilityResult:
-        """Выполняет огненную атаку по одной цели."""
+        """
+        Выполняет огненную атаку по одной цели.
+        
+        :param character: Персонаж, использующий способность
+        :param targets: Список целей (берется только первая)
+        :param kwargs: Дополнительные параметры
+        :return: Результат выполнения способности
+        """
         result: AbilityResult = AbilityResult()
         result.ability_type = "fireball"
         result.character = character
@@ -71,8 +78,11 @@ class Fireball(ActiveAbility):
             actual_damage: int = mechanics_results['final_damage']
             # Наносим урон цели
             target.take_damage(actual_damage)
+
             # Применяем эффекты с определенным шансом
-            apply_effect_result_list: list[IApplyEffectResult] = self.apply_effects_with_chance(target, chance=1.0)  # 30% шанс наложить эффект
+            apply_effect_result_list: List[IApplyEffectResult] = []
+            if target.is_alive():
+                apply_effect_result_list = self.apply_effects_with_chance(target, chance=1.0)  # 100% шанс наложить эффект
 
             target_info['damage_dealt'] = actual_damage
             target_info['damage_blocked'] = mechanics_results['blocked_damage']
@@ -95,40 +105,20 @@ class Fireball(ActiveAbility):
             
             message = battle_logger.create_log_message(damage_template, damage_elements)
             result.messages.append(message)
-
+            
             for apply_effect_result in apply_effect_result_list:
                 result.messages.append(apply_effect_result.message)
             
-        
         result.details['target_info'] = target_info
         return result
     
-    def apply_effects_with_chance(self, target: Character, chance: float = 1.0) -> list[IApplyEffectResult]:
-        """
-        Применяет все возможные эффекты способности с заданным шансом.
-        
-        :param character: Персонаж, применяющий способность
-        :param target: Цель
-        :param chance: Шанс применения эффектов (0.0 - 1.0)
-        """
-        import random
-        
-        # Проверяем шанс применения
-        if random.random() > chance:
-            return []
-            
-        # Создаем экземпляры эффектов с параметрами по умолчанию
-        effect_instances = self.get_effect_instances()
-        
-        apply_effect_results_list: list[IApplyEffectResult] = []
-        # Применяем каждый эффект
-        for effect in effect_instances:
-            apply_effect_result = target.status_manager.add_effect(effect, target)
-            apply_effect_results_list.append(apply_effect_result)
-
-        return apply_effect_results_list
-    
     def check_specific_conditions(self, character: Character, targets: List[Character]) -> bool:
-        """Проверяет специфические условия для использования умения"""
-        # Огненный шар можно использовать только против одной цели
-        return True
+        """
+        Проверяет специфические условия для использования умения.
+        
+        :param character: Персонаж, использующий способность
+        :param targets: Список целей
+        :return: True если условия выполнены, False если нет
+        """
+        # Огненный шар можно использовать только против одной цели - пока отставить
+        return True #len(targets) <= 1 and len(targets) > 0
