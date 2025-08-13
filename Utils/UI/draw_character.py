@@ -237,7 +237,7 @@ class DrawCharacter:
         Универсальный прогресс-бар (HP, Energy и др.) — перенесён из progress_bar.py.
         """
         if max_value <= 0:
-            ratio_value = 0
+            ratio_value: float = 0
         else:
             ratio_value = max(0.0, min(1.0, current_value / max_value))
 
@@ -285,7 +285,7 @@ class DrawCharacter:
             pass
 
     @staticmethod
-    def draw_energy_bar(screen, position_y: int, position_x: int, current_energy: int, max_energy: int, bar_width: int = None):
+    def draw_energy_bar(screen, position_y: int, position_x: int, current_energy: int, max_energy: int, bar_width: int = 0):
         """
         Специализированный бар энергии — скрывает энергию, если < BASE_ENERGY_COST.
         """
@@ -307,7 +307,7 @@ class DrawCharacter:
         )
 
     @staticmethod
-    def draw_hp_bar(screen, position_y: int, position_x: int, character, bar_width: int = None) -> int:
+    def draw_hp_bar(screen, position_y: int, position_x: int, character, bar_width: int = 0) -> int:
         """
         Отрисовка HP-бара по персонажу.
         """
@@ -330,7 +330,7 @@ class DrawCharacter:
         return position_x + bar_width + AFTER_BAR_SPACING
 
     @staticmethod
-    def draw_energy_bar_direct(screen, position_y: int, position_x: int, character, bar_width: int = None) -> int:
+    def draw_energy_bar_direct(screen, position_y: int, position_x: int, character, bar_width: int = 0) -> int:
         """
         Удобная обёртка для отрисовки энергии.
         """
@@ -354,7 +354,7 @@ class DrawCharacter:
 # from Config.curses_config import get_color_pair, COLOR_GRAY
 
     @staticmethod
-    def draw_status_effects(screen, position_y: int, position_x: int, character, max_width: int = None) -> int:
+    def draw_status_effects(screen, position_y: int, position_x: int, character, max_width: int = 0) -> int:
         """
         Отрисовывает активные статус-эффекты персонажа в виде иконок.
         
@@ -383,7 +383,7 @@ class DrawCharacter:
             displayed_effects = active_effects_list[:5]
             
             # Создаем строку с иконками эффектов, разделенными пробелами
-            effect_icons = []
+            effect_icons: list = []
             current_width = 0
             
             for effect in displayed_effects:

@@ -1,32 +1,51 @@
-# Characters/Abilities/ability_base.py - Базовые классы способностей
+# Characters/Abilities/ability.py - Базовые классы способностей
 
-import os
-import re
-import importlib.util
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional, Union
-from Config.game_config import ABILITIES_PATH
+from dataclasses import dataclass, field
+from typing import Dict, List, Any, Optional, TYPE_CHECKING, Type
+
+if TYPE_CHECKING:
+    from Characters.character import Character
+    from Characters.Status_effects.status_effect import Status_effect  # Предполагаемый импорт для типизации
+
+# ==================== Результат информации о способности ====================
+@dataclass
+class AbilityInfo:
+    """Класс для возврата информации о способности."""
+    name: str
+    type: int
+    description: str
+    level: int
+    # Для активных способностей
+    damage_scale: Optional[float] = None
+    energy_cost: Optional[int] = None
+    is_mass: Optional[bool] = None
+    cooldown: Optional[int] = None
+    current_cooldown: Optional[int] = None
 
 
+# ==================== Результат способности ====================
+@dataclass
 class AbilityResult:
-    """Простой класс для возврата результатов из способностей."""
+    """Класс для возврата результатов из способностей."""
     
-    def __init__(self) -> None:
-        # Универсальные свойства для всех способностей
-        self.success: bool = True
-        self.ability_type: str = ""
-        self.character: str = ""
-        self.targets: List[str] = []
-        self.messages: List[Any] = []
-        self.damage_dealt: int = 0
-        self.heal_amount: int = 0
-        self.energy_restored: int = 0
-        self.is_critical: bool = False
-        self.total_damage: int = 0
-        self.total_heal: int = 0
-        self.reason: str = ""  # Причина неудачи
-        self.details: Dict[str, Any] = {}  # Для дополнительной информации
+    # Универсальные свойства для всех способностей
+    success: bool = True
+    ability_type: str = ""
+    character: Optional['Character'] = None
+    targets: List['Character'] = field(default_factory=list)
+    messages: List[Any] = field(default_factory=list)
+    damage_dealt: int = 0
+    heal_amount: int = 0
+    energy_restored: int = 0
+    is_critical: bool = False
+    total_damage: int = 0
+    total_heal: int = 0
+    reason: str = ""  # Причина неудачи
+    details: Dict[str, Any] = field(default_factory=dict)  # Для дополнительной информации
 
+
+# ==================== Базовый класс способности ====================
 class Ability(ABC):
     """Абстрактный базовый класс для способностей - нельзя создавать напрямую"""
     
@@ -45,6 +64,7 @@ class Ability(ABC):
         self.description: str = description
         self.icon: str = icon
     
+    # ==================== Управление уровнями ====================
     def level_up(self) -> int:
         """Повышает уровень способности на 1"""
         self.level += 1
@@ -59,25 +79,29 @@ class Ability(ABC):
         """Проверяет, доступна ли способность (уровень > 0)"""
         return self.level > 0
     
-    def get_info(self) -> Dict[str, Any]:
+    # ==================== Информация ====================
+    def get_info(self) -> AbilityInfo:
         """Возвращает информацию о способности."""
-        return {
-            'name': self.name,
-            'type': self.type,
-            'description': self.description,
-            'level': self.level
-        }
+        return AbilityInfo(
+            name=self.name,
+            type=self.type,
+            description=self.description,
+            level=self.level
+        )
     
+    # ==================== Абстрактные методы ====================
     @abstractmethod
-    def can_use(self, character: Any, targets: Optional[List[Any]] = None) -> bool:
+    def can_use(self, character: 'Character', targets: Optional[List['Character']] = None) -> bool:
         """Абстрактный метод проверки возможности использования"""
         pass
     
     @abstractmethod
-    def use(self, character: Any, targets: List[Any], **kwargs: Any) -> AbilityResult:
+    def use(self, character: 'Character', targets: List['Character'], **kwargs: Any) -> AbilityResult:
         """Абстрактный метод использования способности"""
         pass
 
+
+# ==================== Активная способность ====================
 class ActiveAbility(Ability):
     """Активная способность - может быть использована игроком"""
     
@@ -101,31 +125,25 @@ class ActiveAbility(Ability):
         self.is_mass: bool = is_mass
         self.cooldown: int = cooldown
         self.current_cooldown: int = 0
-        self._applied_effects: Optional[List[Dict[str, Any]]] = None  # Ленивая инициализация
+        self._applied_effects: Optional[List[Type['Status_effect']]] = None  # Ленивая инициализация
     
+    # ==================== Управление эффектами ====================
     @property
-    def applied_effects(self) -> List[Dict[str, Any]]:
+    def applied_effects(self) -> List[Type['Status_effect']]:
         """Ленивое создание списка применяемых эффектов"""
         if self._applied_effects is None:
             self._applied_effects = []
         return self._applied_effects
     
-    def add_effect(self, effect_class: type, base_chance: float, **params) -> None:
+    def add_effect(self, effect_class: Type['Status_effect']) -> None:
         """
         Добавляет эффект, который может быть применен этой способностью.
         
         :param effect_class: Класс эффекта
-        :param base_chance: Базовый шанс применения эффекта (0.0 - 1.0)
-        :param params: Параметры для создания эффекта
         """
-        effect_data = {
-            'class': effect_class,
-            'chance': base_chance,
-            'params': params
-        }
-        self.applied_effects.append(effect_data)
+        self.applied_effects.append(effect_class)
     
-    def get_effects_info(self) -> List[Dict[str, Any]]:
+    def get_effects_info(self) -> List[Type['Status_effect']]:
         """Возвращает информацию о всех возможных эффектах способности"""
         if self._applied_effects is None:
             return []
@@ -135,8 +153,49 @@ class ActiveAbility(Ability):
         """Очищает список применяемых эффектов"""
         if self._applied_effects is not None:
             self._applied_effects.clear()
+
+    def add_effect_by_class_name(self, effect_class_name: str) -> bool:
+        """
+        Добавляет эффект в список применяемых эффектов по имени класса.
+        
+        :param effect_class_name: Имя класса эффекта
+        :return: True если эффект добавлен, False если класс не найден
+        """
+        from Characters.Status_effects.status_manager import get_effect_class_by_name
+        effect_class = get_effect_class_by_name(effect_class_name)
+        if effect_class:
+            self.applied_effects.append(effect_class)
+            return True
+        return False
+
+    def add_effect_by_class(self, effect_class: type) -> None:
+        """
+        Добавляет эффект в список применяемых эффектов напрямую по классу.
+        
+        :param effect_class: Класс эффекта
+        """
+        self.applied_effects.append(effect_class)
+
+    def get_effect_instances(self, **kwargs) -> List['Status_effect']:
+        """
+        Создает экземпляры всех применяемых эффектов.
+        
+        :param kwargs: Параметры для создания экземпляров эффектов
+        :return: Список экземпляров эффектов
+        """
+        instances = []
+        for effect_class in self.applied_effects:
+            try:
+                # Создаем экземпляр эффекта с переданными параметрами
+                instance = effect_class(**kwargs)
+                instances.append(instance)
+            except Exception:
+                # Если не удалось создать экземпляр, пропускаем
+                continue
+        return instances
     
-    def can_use(self, character: Any, targets: Optional[List[Any]] = None) -> bool:
+    # ==================== Проверка возможности использования ====================
+    def can_use(self, character: 'Character', targets: Optional[List['Character']] = None) -> bool:
         """
         Проверяет, может ли персонаж использовать активную способность.
         
@@ -159,14 +218,15 @@ class ActiveAbility(Ability):
         # Проверяем специфические условия для способности
         return self.check_specific_conditions(character, targets or [])
     
-    def check_specific_conditions(self, character: Any, targets: List[Any]) -> bool:
+    def check_specific_conditions(self, character: 'Character', targets: List['Character']) -> bool:
         """
         Проверяет специфические условия для использования способности.
         Переопределяется в подклассах.
         """
         return True
     
-    def use(self, character: Any, targets: List[Any], **kwargs: Any) -> AbilityResult:
+    # ==================== Использование способности ====================
+    def use(self, character: 'Character', targets: List['Character'], **kwargs: Any) -> AbilityResult:
         """
         Использует активную способность.
         
@@ -180,7 +240,8 @@ class ActiveAbility(Ability):
             result.success = False
             result.reason = "Невозможно использовать способность"
             result.ability_type = self.__class__.__name__.lower()
-            result.character = character.name if hasattr(character, 'name') else str(character)
+            result.character = character
+            result.targets = targets
             return result
         
         # Тратим энергию
@@ -198,37 +259,39 @@ class ActiveAbility(Ability):
         
         return result
     
-    def execute(self, character: Any, targets: List[Any], **kwargs: Any) -> AbilityResult:
+    def execute(self, character: 'Character', targets: List['Character'], **kwargs: Any) -> AbilityResult:
         """
         Выполняет логику способности. Переопределяется в подклассах.
         """
         raise NotImplementedError("Метод execute должен быть реализован в подклассе")
     
+    # ==================== Управление кулдауном ====================
     def update_cooldown(self) -> None:
         """Обновляет кулдаун способности в конце раунда."""
         if self.current_cooldown > 0:
             self.current_cooldown -= 1
     
-    def on_use(self, character: Any, targets: List[Any], result: AbilityResult) -> None:
+    def on_use(self, character: 'Character', targets: List['Character'], result: AbilityResult) -> None:
         """
         Вызывается после использования способности.
         Можно использовать для обновления статистики и т.д.
         """
         pass
     
-    def get_info(self) -> Dict[str, Any]:
+    # ==================== Информация ====================
+    def get_info(self) -> AbilityInfo:
         """Возвращает информацию о активной способности."""
-        info = super().get_info()
-        info.update({
+        base_info = super().get_info()
+        return AbilityInfo(**base_info.__dict__ | {
             'damage_scale': self.damage_scale,
             'energy_cost': self.energy_cost,
             'is_mass': self.is_mass,
             'cooldown': self.cooldown,
-            'current_cooldown': self.current_cooldown,
-            'effects_count': len(self.applied_effects) if self._applied_effects is not None else 0
+            'current_cooldown': self.current_cooldown
         })
-        return info
 
+
+# ==================== Пассивная способность ====================
 class PassiveAbility(Ability):
     """Пассивная способность - работает автоматически, не требует активации"""
     
@@ -243,14 +306,15 @@ class PassiveAbility(Ability):
         """
         super().__init__(name, type, description, icon)
     
-    def can_use(self, character: Any, targets: Optional[List[Any]] = None) -> bool:
+    # ==================== Использование способности ====================
+    def can_use(self, character: 'Character', targets: Optional[List['Character']] = None) -> bool:
         """
         Пассивные способности всегда доступны если имеют уровень > 0.
         Используются автоматически системой.
         """
         return self.is_available()
     
-    def use(self, character: Any, targets: List[Any], **kwargs: Any) -> AbilityResult:
+    def use(self, character: 'Character', targets: List['Character'], **kwargs: Any) -> AbilityResult:
         """
         Пассивные способности не могут быть использованы напрямую.
         """
@@ -258,299 +322,14 @@ class PassiveAbility(Ability):
         result.success = False
         result.reason = "Пассивные способности нельзя использовать напрямую"
         result.ability_type = self.__class__.__name__.lower()
-        result.character = character.name if hasattr(character, 'name') else str(character)
+        result.character = character
+        result.targets = targets
         return result
     
-    def apply_effect(self, character: Any, **kwargs: Any) -> Any:
+    # ==================== Абстрактный метод ====================
+    def apply_effect(self, character: 'Character', **kwargs: Any) -> Any:
         """
         Применяет эффект пассивной способности.
         Переопределяется в подклассах.
         """
         raise NotImplementedError("Метод apply_effect должен быть реализован в подклассе")
-
-# === Singleton AbilityLoader ===
-
-class AbilityLoader:
-    _instance: Optional['AbilityLoader'] = None
-    _initialized: bool = False
-    
-    def __new__(cls, root_folder: Optional[str] = None) -> 'AbilityLoader':
-        if cls._instance is None:
-            cls._instance = super(AbilityLoader, cls).__new__(cls)
-        return cls._instance
-    
-    def __init__(self, root_folder: Optional[str] = None) -> None:
-        # Инициализируем только один раз
-        if not self._initialized:
-            self.root_folder: str = root_folder or 'Characters/Abilities'
-            self._class_map: Dict[str, type] = {}  # Теперь храним классы, а не пути
-            self._scan_abilities()
-            self.__class__._initialized = True
-    
-    def _scan_abilities(self) -> None:
-        """Сканирует все файлы способностей и сохраняет классы этих способностей"""
-        # Формируем путь к папке с способностями
-        base_path = os.path.normpath(ABILITIES_PATH)
-        
-        if not os.path.exists(base_path):
-            raise FileNotFoundError(f"Root folder '{base_path}' not found")
-        
-        for dirpath, dirnames, filenames in os.walk(base_path):
-            # Пропускаем корневую директорию (где лежит abilities.py)
-            if dirpath == base_path:
-                continue
-
-            for filename in filenames:
-                # Исключаем служебные файлы
-                if (filename.endswith('.py') and 
-                    filename not in ['__init__.py', 'ability_base.py', 'abilities.py']):
-                    full_path = os.path.join(dirpath, filename)
-                    
-                    # Загружаем класс сразу при сканировании
-                    try:
-                        class_name = self._get_class_name_from_file(full_path)
-                        if class_name:
-                            ability_class = self._load_class_from_file(full_path, class_name)
-                            self._class_map[class_name] = ability_class
-                    except Exception as e:
-                        print(f"Warning: Failed to load ability class from '{full_path}': {str(e)}")
-    
-    def _get_class_name_from_file(self, file_path: str) -> Optional[str]:
-        """Получает имя первого класса из файла Python"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Ищем первую строку с определением класса (только если class в начале строки)
-            match = re.search(r'^class\s+(\w+)', content, re.MULTILINE)
-            if match:
-                return match.group(1)
-            return None
-        except Exception:
-            return None
-
-    def _load_class_from_file(self, file_path: str, class_name: str) -> type:
-
-        spec = importlib.util.spec_from_file_location(class_name, file_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        
-        if not hasattr(module, class_name):
-            raise AttributeError(f"Class '{class_name}' not found in module '{file_path}'")
-            
-        return getattr(module, class_name)
-    
-    def get_class(self, class_name: str) -> type:
-        """Получает класс способности по имени"""
-        if class_name not in self._class_map:
-            available_abilities = list(self._class_map.keys())
-            raise FileNotFoundError(f"Ability class '{class_name}' not found. Available abilities: {available_abilities}")
-        
-        return self._class_map[class_name]
-    
-    def get_available_abilities(self) -> List[str]:
-        """Возвращает список доступных имен способностей"""
-        return list(self._class_map.keys())
-    
-    @classmethod
-    def get_instance(cls) -> 'AbilityLoader':
-        """Получить экземпляр singleton"""
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-
-# === Система управления способностями персонажа ===
-
-class AbilityManager:
-    """Менеджер способностей персонажа"""
-    
-    def __init__(self) -> None:
-        # Разделяем активные и пассивные способности
-        self.active_abilities: Dict[str, ActiveAbility] = {}  # {name: ActiveAbility instance}
-        self.passive_abilities: Dict[str, PassiveAbility] = {}  # {name: PassiveAbility instance}
-        # Получаем singleton instance AbilityLoader
-        self.ability_loader: AbilityLoader = AbilityLoader.get_instance()
-        # Добавляем базовые способности по умолчанию
-        self.add_ability_by_name('Attack')
-        self.add_ability_by_name('Rest')
-    
-    def add_ability(self, name: str, ability_instance: Union[ActiveAbility, PassiveAbility]) -> bool:
-        """Добавляет способность персонажу."""
-        try:
-            # Создаем копию способности для каждого персонажа
-            if hasattr(ability_instance, '__class__'):
-                new_ability = ability_instance.__class__()
-                # Копируем все атрибуты
-                for attr, value in ability_instance.__dict__.items():
-                    setattr(new_ability, attr, value)
-            else:
-                new_ability = ability_instance
-                
-            # Добавляем в соответствующий словарь
-            if isinstance(new_ability, PassiveAbility):
-                self.passive_abilities[name] = new_ability
-            elif isinstance(new_ability, ActiveAbility):
-                self.active_abilities[name] = new_ability
-            return True
-        except Exception as e:
-            print(f"Error adding ability '{name}': {e}")
-            return False
-    
-    def remove_ability(self, name: str) -> bool:
-        """Удаляет способность по имени."""
-        if name in self.active_abilities:
-            del self.active_abilities[name]
-            return True
-        elif name in self.passive_abilities:
-            del self.passive_abilities[name]
-            return True
-        return False
-    
-    def clear_abilities(self) -> None:
-        """Удаляет все способности."""
-        self.active_abilities.clear()
-        self.passive_abilities.clear()
-    
-    def get_ability(self, name: str) -> Optional[Union[ActiveAbility, PassiveAbility]]:
-        """Получает способность по имени."""
-        if name in self.active_abilities:
-            return self.active_abilities[name]
-        elif name in self.passive_abilities:
-            return self.passive_abilities[name]
-        return None
-    
-    def get_active_ability(self, name: str) -> Optional[ActiveAbility]:
-        """Получает активную способность по имени."""
-        return self.active_abilities.get(name)
-    
-    def get_passive_ability(self, name: str) -> Optional[PassiveAbility]:
-        """Получает пассивную способность по имени."""
-        return self.passive_abilities.get(name)
-    
-    def get_all_abilities(self) -> List[Union[ActiveAbility, PassiveAbility]]:
-        """Возвращает все способности персонажа."""
-        return list(self.active_abilities.values()) + list(self.passive_abilities.values())
-    
-    def get_active_abilities(self) -> List[ActiveAbility]:
-        """Возвращает все активные способности персонажа."""
-        return list(self.active_abilities.values())
-    
-    def get_passive_abilities(self) -> List[PassiveAbility]:
-        """Возвращает все пассивные способности персонажа."""
-        return list(self.passive_abilities.values())
-    
-    def get_all_ability_names(self) -> List[str]:
-        """Возвращает имена всех способностей персонажа."""
-        return list(self.active_abilities.keys()) + list(self.passive_abilities.keys())
-    
-    def get_active_ability_names(self) -> List[str]:
-        """Возвращает имена всех активных способностей персонажа."""
-        return list(self.active_abilities.keys())
-    
-    def get_passive_ability_names(self) -> List[str]:
-        """Возвращает имена всех пассивных способностей персонажа."""
-        return list(self.passive_abilities.keys())
-    
-    def get_available_abilities(self, character: Any) -> List[ActiveAbility]:
-        """
-        Возвращает список ссылок на активные способности, которые сейчас доступны.
-        :param character: Персонаж для проверки условий
-        :return: Список доступных способностей (ActiveAbility instances)
-        """
-        return [ability for ability in self.active_abilities.values() if ability.can_use(character)]
-    
-    def get_available_ability_names(self, character: Any) -> List[str]:
-        """
-        Возвращает список имен активных способностей, которые сейчас доступны.
-        :param character: Персонаж для проверки условий
-        :return: Список имен доступных способностей
-        """
-        return [name for name, ability in self.active_abilities.items() if ability.can_use(character)]
-    
-    def get_available_passive_abilities(self, character: Any) -> List[PassiveAbility]:
-        """
-        Возвращает список ссылок на пассивные способности, которые сейчас доступны.
-        :param character: Персонаж для проверки условий
-        :return: Список доступных пассивных способностей (PassiveAbility instances)
-        """
-        return [ability for ability in self.passive_abilities.values() if ability.is_available()]
-    
-    def use_ability(self, ability: Optional[ActiveAbility], character: Any, 
-                   targets: List[Any], **kwargs: Any) -> AbilityResult:
-        """Использует активную способность напрямую."""
-        if ability and isinstance(ability, ActiveAbility) and ability.can_use(character, targets):
-            return ability.use(character, targets, **kwargs)
-        result = AbilityResult()
-        result.success = False
-        result.reason = "Способность недоступна или не является активной"
-        return result
-    
-    def update_cooldowns(self) -> None:
-        """Обновляет кулдауны всех активных способностей в конце раунда."""
-        for ability in self.active_abilities.values():
-            if hasattr(ability, 'update_cooldown'):
-                ability.update_cooldown()
-
-    def reset_all_cooldowns(self) -> None:
-        """Сбрасывает все кулдауны активных способностей до 0."""
-        for ability in self.active_abilities.values():
-            if hasattr(ability, 'current_cooldown'):
-                ability.current_cooldown = 0
-    
-    def create_ability_by_name(self, ability_name: str) -> Optional[Union[ActiveAbility, PassiveAbility]]:
-        """
-        Создает экземпляр способности по имени через AbilityLoader.
-        
-        :param ability_name: Имя способности (должно совпадать с именем класса)
-        :return: Экземпляр способности или None, если не найдена
-        """
-        try:
-            ability_class = self.ability_loader.get_class(ability_name)
-            return ability_class()
-        except (FileNotFoundError, ImportError, AttributeError) as e:
-            print(f"Ошибка при создании способности '{ability_name}': {e}")
-            return None
-    
-    def add_ability_by_name(self, ability_name: str) -> bool:
-        """
-        Добавляет способность по имени.
-        
-        :param ability_name: Имя способности для добавления
-        :return: True, если успешно добавлена, False в случае ошибки
-        """
-        ability_instance = self.create_ability_by_name(ability_name)
-        if ability_instance:
-            # Используем имя файла (в нижнем регистре) как ключ
-            name_key = ability_name.lower()
-            return self.add_ability(name_key, ability_instance)
-        return False
-    
-    def level_up_ability(self, ability_name: str) -> int:
-        """
-        Повышает уровень способности на 1.
-        
-        :param ability_name: Имя способности
-        :return: Новый уровень способности или -1 если способность не найдена
-        """
-        ability = self.get_ability(ability_name)
-        if ability:
-            return ability.level_up()
-        return -1
-    
-    def set_ability_level(self, ability_name: str, level: int) -> int:
-        """
-        Устанавливает уровень способности.
-        
-        :param ability_name: Имя способности
-        :param level: Новый уровень
-        :return: Новый уровень способности или -1 если способность не найдена
-        """
-        ability = self.get_ability(ability_name)
-        if ability:
-            return ability.set_level(level)
-        return -1
-
-# Удобная функция для получения AbilityLoader
-def get_ability_loader() -> AbilityLoader:
-    """Получить singleton экземпляр AbilityLoader"""
-    return AbilityLoader.get_instance()

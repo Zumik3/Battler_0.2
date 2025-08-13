@@ -8,7 +8,7 @@ from Characters.behavior import decide_action
 def battle_round(players, enemies, battle_logger) -> str:
     """Один раунд боя"""
     
-    battle_result = None
+    battle_result: str = "draw"
     #эффекты срабатывающие в начале раунда
     pre_round_processing(players, enemies)
 

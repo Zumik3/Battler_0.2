@@ -84,7 +84,7 @@ class PoisonStrike(PassiveAbility):
                 'chance': current_chance,
                 'target': target.name,
                 'effect_instance': poison_effect,
-                'message': result.get('message', f'{target.name} отравлен!')
+                'message': "Отравлен"
             }
         else:
             return {

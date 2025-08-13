@@ -7,6 +7,7 @@ from curses import COLOR_BLUE, COLOR_RED, COLOR_WHITE
 from Battle.battle_logger import battle_logger
 from Characters.Status_effects.effect_result import EffectResult
 from Characters.Status_effects.status_effect import StatusEffect
+from Characters.Status_effects.status_manager import register_effect
 from Characters.character import Character
 
 
@@ -33,7 +34,7 @@ class PoisonEffect(StatusEffect):
     def apply_effect(self, target: Character) -> Dict[str, Any]:
         """Применяется при первом наложении эффекта"""
         return {
-            'message': f"{target.name} получает эффект отравления!",
+            'messages': [f"{target.name} получает эффект отравления!"],
             'effect': 'poison_applied'
         }
     
@@ -62,3 +63,6 @@ class PoisonEffect(StatusEffect):
             'message': f"Эффект отравления на {target.name} исчез",
             'effect': 'poison_removed'
         }
+
+# Регистрируем эффект в реестре
+register_effect(PoisonEffect)

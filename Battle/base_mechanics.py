@@ -174,11 +174,11 @@ class GameMechanics:
             results['final_damage'] = max(0, round(results['reduced_damage']))
 
             # Проверяем пассивные способности атакующего на наложение статус-эффектов
-            if results['final_damage'] > 0:  # Только если атака попала и нанесла урон
+            #if results['final_damage'] > 0:  # Только если атака попала и нанесла урон
                 # Проверяем способность "Отравляющий удар"
-                poison_ability = attacker.ability_manager.get_passive_ability('poisonstrike')
-                if poison_ability and poison_ability.is_available():
-                    poison_result = poison_ability.apply_effect(attacker, target=target)
+            #    poison_ability = attacker.ability_manager.get_passive_ability('poisonstrike')
+            #    if poison_ability and poison_ability.is_available():
+            #        poison_ability.apply_effect(attacker, target=target)
         
         return results
 

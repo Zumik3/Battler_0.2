@@ -26,7 +26,7 @@ class SlidingStrike(ActiveAbility):
         """Выполняет скользящий удар по всем врагам."""
         result: AbilityResult = AbilityResult()
         result.ability_type = "sliding_strike"
-        result.character = character.name
+        result.character = character
         
         # Фильтруем живые цели
         alive_targets = [target for target in targets if target.is_alive()]
@@ -36,7 +36,7 @@ class SlidingStrike(ActiveAbility):
             result.reason = 'Нет целей для атаки'
             return result
         
-        result.targets = [target.name for target in alive_targets]
+        result.targets = alive_targets
         
         # Рассчитываем базовый урон
         base_damage: int = int(character.derived_stats.attack * self.damage_scale)
@@ -82,10 +82,11 @@ class SlidingStrike(ActiveAbility):
                 total_damage += actual_damage
                 
                 # Добавляем сообщение о уроне
+                damage_template: str = ""
                 if mechanics_results['critical_hit']:
-                    damage_template: str = f"  {DAMAGE_LIST_ICON} %1 получает %2 КРИТИЧЕСКОГО урона от скользящего удара! (%3 заблокировано) 💥"
+                    damage_template = f"  {DAMAGE_LIST_ICON} %1 получает %2 КРИТИЧЕСКОГО урона от скользящего удара! (%3 заблокировано) 💥"
                 else:
-                    damage_template: str = f"  {DAMAGE_LIST_ICON} %1 получает %2 урона от скользящего удара. (%3 заблокировано)"
+                    damage_template = f"  {DAMAGE_LIST_ICON} %1 получает %2 урона от скользящего удара. (%3 заблокировано)"
                 
                 damage_elements: List[tuple] = [(target.name, COLOR_BLUE), 
                                               (str(actual_damage), COLOR_RED), 

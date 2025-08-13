@@ -1,19 +1,21 @@
 # Characters/Status_effects/burn_effect.py
-import random
-from typing import Dict, Any, List
 
-from curses import COLOR_RED, COLOR_WHITE, COLOR_YELLOW
+from typing import Dict, Any, List
+from Config.curses_config import COLOR_BLUE, COLOR_GREEN, COLOR_RED, COLOR_WHITE, COLOR_YELLOW
 
 from Battle.battle_logger import battle_logger
-from Characters.Status_effects.effect_result import EffectResult
-from Characters.Status_effects.status_effect import StatusEffect
+from Characters.Status_effects.effect_result import EffectResult, ApplyEffectResult
+from Characters.Status_effects.status_effect import StackableStatusEffect
+from Characters.Status_effects.status_manager import register_effect
 from Characters.character import Character
+from Config.game_config import EFFECT_LIST_ICON, SPACES_SECOND_LEVEL
+from Utils.types import IEffectResult
 
 
-class BurnEffect(StatusEffect):
+class BurnEffect(StackableStatusEffect):
     """Эффект ожога - наносит урон каждый ход с нарастающим эффектом и дополнительными механиками"""
     
-    def __init__(self, duration: int = 3, base_damage: int = 3):
+    def __init__(self, duration: int = 2, base_damage: int = 3):
         """
         Инициализация эффекта ожога.
         
@@ -23,33 +25,29 @@ class BurnEffect(StatusEffect):
         super().__init__(
             name="Ожог",
             duration=duration,
-            description=f"Наносит нарастающий урон каждый ход и снижает защиту",
+            description=f"Наносит нарастающий урон каждый ход",
             icon="🔥"
         )
         self.base_damage = base_damage
         self.base_duration = duration  # Сохраняем базовую длительность
-        self.stacks = 1  # Количество стаков эффекта
+        self.stacks = 0  # Количество стаков эффекта
     
-    def apply_effect(self, target: Character) -> Dict[str, Any]:
+    def apply_effect(self, target: Character) -> IEffectResult:
         """Применяется при первом наложении эффекта или добавлении стака"""
-        # Проверяем, есть ли уже такой эффект
-        if target.has_status_effect("Ожог"):
-            # Если эффект уже есть, увеличиваем стаки и обновляем длительность
-            existing_effect = target.status_manager.get_effect("Ожог")
-            if existing_effect:
-                existing_effect.stacks += 1
-                # Обновляем длительность до базового значения
-                existing_effect.duration = existing_effect.base_duration
-                return {
-                    'message': f"{target.name} получает дополнительный стак ожога! (Стаков: {existing_effect.stacks})",
-                    'effect': 'burn_stacked'
-                }
         
         # Первичное применение эффекта
-        return {
-            'message': f"{target.name} получает эффект ожога!",
-            'effect': 'burn_applied'
-        }
+        apply_effect_result = ApplyEffectResult("burn")
+        
+        target_color = COLOR_GREEN if target.is_player else COLOR_BLUE
+
+        template: str = f"{SPACES_SECOND_LEVEL}%1 %2 получает %3"        
+        elements: List[tuple] = [(EFFECT_LIST_ICON, COLOR_RED), 
+            (target.name, target_color), ("ожог", COLOR_RED)]
+        message = battle_logger.create_log_message(template, elements)
+
+        apply_effect_result.add_message(message)
+        return apply_effect_result
+
     
     def update_effect(self, target: Character) -> EffectResult:
         """Вызывается каждый ход - наносит урон от ожога с нарастающим эффектом"""
@@ -57,11 +55,9 @@ class BurnEffect(StatusEffect):
         result.effect = 'burn_tick'
         
         # Рассчитываем урон с учетом стаков (линейный рост)
-        current_damage = self.base_damage * self.stacks
-        result.total_damage = current_damage
-
-        # Наносим урон
+        current_damage =  self.get_total_effect_value(self.base_damage)
         target.take_damage(current_damage)
+        result.total_damage = current_damage
         
         # Формируем сообщение об уроне
         damage_template = f"%1 %2 получает %3 урона от ожога"
@@ -74,16 +70,6 @@ class BurnEffect(StatusEffect):
         log_message = battle_logger.create_log_message(damage_template, damage_elements)
         result.messages.append(log_message)
         
-        # Добавляем шанс на дополнительный эффект - воспламенение
-        if random.random() < 0.15:  # 15% шанс
-            result.additional_effects.append({
-                'type': 'ignite',
-                'message': f"{target.name} вспыхивает от огня!",
-                'extra_damage': int(current_damage * 0.5)
-            })
-            # Наносим дополнительный урон от воспламенения
-            target.take_damage(int(current_damage * 0.5))
-        
         return result
     
     def remove_effect(self, target: Character) -> Dict[str, Any]:
@@ -92,14 +78,6 @@ class BurnEffect(StatusEffect):
             'message': f"Эффект ожога на {target.name} исчез",
             'effect': 'burn_removed'
         }
-    
-    def get_intensity_description(self) -> str:
-        """Возвращает описание интенсивности эффекта в зависимости от количества стаков"""
-        if self.stacks == 1:
-            return "легкий"
-        elif self.stacks == 2:
-            return "средний"
-        elif self.stacks == 3:
-            return "сильный"
-        else:
-            return "разрушительный"
+
+# Регистрируем эффект в реестре
+register_effect(BurnEffect)

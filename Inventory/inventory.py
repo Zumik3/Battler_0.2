@@ -1,34 +1,40 @@
 # inventory.py - Система инвентаря (Singleton)
 
-from typing import Dict, List, Any
+from typing import Dict, Any, Optional, Protocol
+
+
+# Протокол для объектов предметов, чтобы указать, что у них должно быть поле name
+class Item(Protocol):
+    name: str
+
 
 class Inventory:
     """Класс для управления инвентарем персонажа или группы (Singleton)."""
     
-    _instance = None
-    _initialized = False
+    _instance: Optional['Inventory'] = None
+    _initialized: bool = False
     
-    def __new__(cls):
+    def __new__(cls) -> 'Inventory':
         if cls._instance is None:
             cls._instance = super(Inventory, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self):
+    def __init__(self) -> None:
         # Предотвращаем повторную инициализацию
         if not Inventory._initialized:
-            self.gold = 0
-            self.items: Dict[Any, int] = {}  # объект предмета: количество
+            self.gold: int = 0
+            self.items: Dict[Item, int] = {}  # объект предмета: количество
             Inventory._initialized = True
     
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'Inventory':
         """Возвращает экземпляр инвентаря (создает, если не существует)."""
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
     
     @classmethod
-    def reset_instance(cls):
+    def reset_instance(cls) -> None:
         """Сбрасывает инстанс для тестирования."""
         cls._instance = None
         cls._initialized = False
@@ -60,7 +66,7 @@ class Inventory:
         """Возвращает количество золота в инвентаре."""
         return self.gold
     
-    def add_item(self, item_object: Any, quantity: int = 1) -> None:
+    def add_item(self, item_object: Item, quantity: int = 1) -> None:
         """
         Добавляет предмет в инвентарь.
         
@@ -73,7 +79,7 @@ class Inventory:
             else:
                 self.items[item_object] = quantity
     
-    def remove_item(self, item_object: Any, quantity: int = 1) -> bool:
+    def remove_item(self, item_object: Item, quantity: int = 1) -> bool:
         """
         Удаляет предмет из инвентаря.
         
@@ -94,7 +100,7 @@ class Inventory:
             return True
         return False
     
-    def get_item_count(self, item_object: Any) -> int:
+    def get_item_count(self, item_object: Item) -> int:
         """
         Возвращает количество конкретного предмета в инвентаре.
         
@@ -103,7 +109,7 @@ class Inventory:
         """
         return self.items.get(item_object, 0)
     
-    def has_item(self, item_object: Any, quantity: int = 1) -> bool:
+    def has_item(self, item_object: Item, quantity: int = 1) -> bool:
         """
         Проверяет, есть ли нужное количество предмета в инвентаре.
         
@@ -113,7 +119,7 @@ class Inventory:
         """
         return self.get_item_count(item_object) >= quantity
     
-    def get_all_items(self) -> Dict[Any, int]:
+    def get_all_items(self) -> Dict[Item, int]:
         """
         Возвращает копию словаря всех предметов в инвентаре.
         

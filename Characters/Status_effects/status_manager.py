@@ -2,9 +2,24 @@
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
 import importlib
 
+from Characters.Status_effects.status_effect import StackableStatusEffect
+from Utils.types import IApplyEffectResult
+
 if TYPE_CHECKING:
     from Characters.character import Character
     from Characters.Status_effects.status_effect import StatusEffect
+
+# Глобальный реестр эффектов
+_EFFECT_REGISTRY = {}
+
+def register_effect(effect_class):
+    """Регистрирует класс эффекта в глобальном реестре"""
+    _EFFECT_REGISTRY[effect_class.__name__] = effect_class
+    return effect_class
+
+def get_effect_class_by_name(effect_class_name: str) -> Optional[type]:
+    """Получает класс эффекта по имени класса из реестра"""
+    return _EFFECT_REGISTRY.get(effect_class_name)
 
 class StatusEffectManager:
     """Менеджер статус-эффектов для персонажа."""
@@ -20,26 +35,28 @@ class StatusEffectManager:
             self._status_effect_class = StatusEffect
         return self._status_effect_class
         
-    def add_effect(self, effect) -> Dict[str, Any]:  # effect: StatusEffect
+    def add_effect(self, effect, target) -> IApplyEffectResult:  # effect: StatusEffect
         """
         Добавляет эффект персонажу.
         
         :param effect: Экземпляр статус-эффекта
-        :return: Результат применения эффекта
         """
-        StatusEffect = self._get_status_effect_type()
-        
         # Проверяем, есть ли уже такой эффект
-        existing_effect = self.get_effect(effect.name)
-        
+        existing_effect = self.get_effect(effect)
+ 
         if existing_effect:
             # Если эффект уже есть, продляем его действие
-            existing_effect.extend_duration(effect.duration)
-            return {"message": f"Эффект {effect.name} продлен"}
+            existing_effect.extend_duration()
         else:
             # Добавляем новый эффект
             self.active_effects.append(effect)
-            return effect.tick(self.character)
+            existing_effect = effect
+
+        if isinstance(effect, StackableStatusEffect):
+            existing_effect.add_stack()
+
+        return effect.apply_effect(target)
+
     
     def remove_effect(self, effect_name: str) -> bool:
         """
@@ -55,15 +72,13 @@ class StatusEffectManager:
                 return True
         return False
     
-    def get_effect(self, effect_name: str):  # -> Optional[StatusEffect]
+    def get_effect(self, effect: 'StatusEffect') -> Optional['StatusEffect']:
         """
-        Получает эффект по имени.
-        
-        :param effect_name: Имя эффекта
+        Получает эффект.
         :return: Экземпляр эффекта или None если не найден
         """
         for effect in self.active_effects:
-            if effect.name == effect_name:
+            if effect.__class__ == effect.__class__:
                 return effect
         return None
     
@@ -120,3 +135,12 @@ class StatusEffectManager:
             results.append(result)
         self.active_effects.clear()
         return results
+    
+    def get_effect_class_by_name(self, effect_class_name: str) -> Optional[type]:
+        """
+        Возвращает класс эффекта по имени класса.
+        
+        :param effect_class_name: Имя класса эффекта
+        :return: Класс эффекта или None если не найден
+        """
+        return get_effect_class_by_name(effect_class_name)

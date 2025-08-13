@@ -41,16 +41,16 @@ class Player(Character, EquipmentMixin):
         """Добавляет опыт персонажу и проверяет на повышение уровня."""
             
         self.exp += exp_amount
-        level_up_messages: List[str] = []
+        level_up_messages: List = []
         
         # Проверяем, достаточно ли опыта для повышения уровня
         while self.exp >= self.exp_to_next_level:
-            level_up_message: str = self.level_up()
+            level_up_message: list[tuple[str, int]] = self.level_up()
             level_up_messages.append(level_up_message)
             
         return level_up_messages
         
-    def level_up(self) -> str:
+    def level_up(self) -> list[tuple[str, int]]:
         """Повышает уровень персонажа и улучшает его характеристики."""
         old_level: int = self.level
         old_dexterity: int = self.stats.dexterity
@@ -126,7 +126,7 @@ class Player(Character, EquipmentMixin):
         
         # Создаем шаблон для всех элементов
         template: str = "".join([f"%{i+1}" for i in range(len(elements))])
-        message: str = battle_logger.create_log_message(template, elements)
+        message: list[tuple[str, int]] = battle_logger.create_log_message(template, elements)
         
         return message
         
@@ -297,6 +297,9 @@ class Mage(Player):
 
         for name in self.ability_manager.active_abilities:
             self.ability_manager.level_up_ability(name)
+
+        # для теста
+        self.ability_manager.remove_ability('attack')
 
 
 class Healer(Player):

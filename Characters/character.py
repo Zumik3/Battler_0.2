@@ -1,8 +1,9 @@
 # character.py
-from typing import TYPE_CHECKING, List, Dict, Any, Optional, Union
 
+from typing import TYPE_CHECKING, List, Dict, Any, Optional
+
+from Characters.base_stats import DerivedStats, Stats
 from Config.game_config import BASE_ENERGY_COST
-from .base_stats import Stats, DerivedStats
 
 if TYPE_CHECKING:
     from Characters.Abilities.ability import AbilityManager

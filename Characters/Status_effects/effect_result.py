@@ -20,3 +20,12 @@ class EffectResult:
     def add_detail(self, key: str, value: Any) -> None:
         """Добавляет деталь в результат."""
         self.details[key] = value
+
+class ApplyEffectResult:
+    def __init__(self, effect: str) -> None:
+        self.effect: str = effect
+        self.message: LoggerMessageType = None
+
+    def add_message(self, message: LoggerMessageType) -> None:
+        """Добавляет сообщение в результат."""
+        self.message = message
