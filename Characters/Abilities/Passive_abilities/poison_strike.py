@@ -1,7 +1,7 @@
 # Characters/Abilities/Passive_abilities/poison_strike.py
 import random
 from typing import Any, Dict, List
-from Characters.Abilities.abilities import PassiveAbility
+from Characters.Abilities.ability import PassiveAbility
 from Characters.Status_effects.poison_effect import PoisonEffect
 
 class PoisonStrike(PassiveAbility):

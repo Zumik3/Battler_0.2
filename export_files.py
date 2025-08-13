@@ -8,7 +8,7 @@ required_files = [
     './Battle/round_logic.py',
     './Characters/base_stats.py',
     './Battle/base_mechanics.py',
-    './Characters/Abilities/abilities.py'
+    './Characters/Abilities/ability.py'
 ]
 
 def export_files_to_single_file(output_filename="project_export.txt"):

@@ -1,12 +1,14 @@
 # Characters/Status_effects/poison_effect.py
-from ast import List
-from curses import COLOR_BLUE, COLOR_RED, COLOR_WHITE
 import random
+from typing import Dict, Any, List
+
+from curses import COLOR_BLUE, COLOR_RED, COLOR_WHITE
+
 from Battle.battle_logger import battle_logger
 from Characters.Status_effects.effect_result import EffectResult
 from Characters.Status_effects.status_effect import StatusEffect
 from Characters.character import Character
-from typing import Dict, Any
+
 
 class PoisonEffect(StatusEffect):
     """Эффект отравления - наносит урон каждый ход"""
@@ -35,7 +37,7 @@ class PoisonEffect(StatusEffect):
             'effect': 'poison_applied'
         }
     
-    def update_effect(self, target: Character) -> Dict[str, Any]:
+    def update_effect(self, target: Character) -> EffectResult:
         """Вызывается каждый ход - наносит урон от отравления"""
         # Наносим урон от отравления
         result: EffectResult = EffectResult()
@@ -47,7 +49,7 @@ class PoisonEffect(StatusEffect):
         # Формируем сообщение
         damage_template = f"%1 %2 получает %3 урона от отравления"
         damage_elements: List[tuple] = [(self.icon, COLOR_WHITE), (target.name, COLOR_BLUE), 
-                                          (str(self.damage_per_turn), COLOR_RED)]
+                                       (str(self.damage_per_turn), COLOR_RED)]
         
         log_message = battle_logger.create_log_message(damage_template, damage_elements)
         result.messages.append(log_message)

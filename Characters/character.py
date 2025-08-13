@@ -5,7 +5,7 @@ from Config.game_config import BASE_ENERGY_COST
 from .base_stats import Stats, DerivedStats
 
 if TYPE_CHECKING:
-    from Characters.Abilities.abilities import AbilityManager
+    from Characters.Abilities.ability import AbilityManager
     from Characters.Status_effects.status_manager import StatusEffectManager
 
 
@@ -39,7 +39,7 @@ class Character:
     def ability_manager(self) -> 'AbilityManager':
         """Ленивое создание менеджера способностей"""
         if self._ability_manager is None:
-            from Characters.Abilities.abilities import AbilityManager
+            from Characters.Abilities.ability_manager import AbilityManager
             self._ability_manager = AbilityManager()
         return self._ability_manager
 

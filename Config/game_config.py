@@ -29,6 +29,8 @@ INPUT_PROMPT = "❱ "
 PROGRESS_BAR_CHARS = "■□"
 PROGRESS_BORDER_CHARS = "[]"
 DAMAGE_LIST_ICON = "🔸"
+EFFECT_LIST_ICON = "▪"
+EFFECT_LIST_ICON2 = "🔹"
 
 PLAYER_NAME_COLUMN_WIDTH = 13  # Для выравнивания баров (6 имя + 7 остальное)
 MONSTER_NAME_COLUMN_WIDTH = 27  # Для выравнивания баров

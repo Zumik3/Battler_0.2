@@ -1,7 +1,7 @@
 # characters/abilities/misc/critical_strike.py
 
 from typing import Any, Dict
-from Characters.Abilities.abilities import PassiveAbility
+from Characters.Abilities.ability import PassiveAbility
 
 class CriticalStrike(PassiveAbility):
     """Пассивная способность: Критический удар - повышает шанс критического удара"""

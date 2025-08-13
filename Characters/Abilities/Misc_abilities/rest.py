@@ -1,7 +1,7 @@
 # Characters/Abilities/rest_ability.py
 
 from Battle.battle_logger import battle_logger
-from Characters.Abilities.abilities import ActiveAbility, AbilityResult
+from Characters.Abilities.ability import ActiveAbility, AbilityResult
 
 class Rest(ActiveAbility):
     """Способность: Отдых - восстанавливает энергию"""

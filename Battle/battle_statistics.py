@@ -4,7 +4,7 @@ from typing import Any, List, Dict, Optional, DefaultDict
 from dataclasses import dataclass, field
 from collections import defaultdict
 
-from Characters.Abilities.abilities import AbilityResult
+from Characters.Abilities.ability import AbilityResult
 
 @dataclass
 class CharacterBattleStats:

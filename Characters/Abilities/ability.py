@@ -101,6 +101,40 @@ class ActiveAbility(Ability):
         self.is_mass: bool = is_mass
         self.cooldown: int = cooldown
         self.current_cooldown: int = 0
+        self._applied_effects: Optional[List[Dict[str, Any]]] = None  # Ленивая инициализация
+    
+    @property
+    def applied_effects(self) -> List[Dict[str, Any]]:
+        """Ленивое создание списка применяемых эффектов"""
+        if self._applied_effects is None:
+            self._applied_effects = []
+        return self._applied_effects
+    
+    def add_effect(self, effect_class: type, base_chance: float, **params) -> None:
+        """
+        Добавляет эффект, который может быть применен этой способностью.
+        
+        :param effect_class: Класс эффекта
+        :param base_chance: Базовый шанс применения эффекта (0.0 - 1.0)
+        :param params: Параметры для создания эффекта
+        """
+        effect_data = {
+            'class': effect_class,
+            'chance': base_chance,
+            'params': params
+        }
+        self.applied_effects.append(effect_data)
+    
+    def get_effects_info(self) -> List[Dict[str, Any]]:
+        """Возвращает информацию о всех возможных эффектах способности"""
+        if self._applied_effects is None:
+            return []
+        return self._applied_effects.copy()
+    
+    def clear_effects(self) -> None:
+        """Очищает список применяемых эффектов"""
+        if self._applied_effects is not None:
+            self._applied_effects.clear()
     
     def can_use(self, character: Any, targets: Optional[List[Any]] = None) -> bool:
         """
@@ -190,7 +224,8 @@ class ActiveAbility(Ability):
             'energy_cost': self.energy_cost,
             'is_mass': self.is_mass,
             'cooldown': self.cooldown,
-            'current_cooldown': self.current_cooldown
+            'current_cooldown': self.current_cooldown,
+            'effects_count': len(self.applied_effects) if self._applied_effects is not None else 0
         })
         return info
 

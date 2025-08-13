@@ -3,7 +3,7 @@
 from typing import List, Dict, Any, Optional
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
-from Characters.Abilities.abilities import ActiveAbility, AbilityResult
+from Characters.Abilities.ability import ActiveAbility, AbilityResult
 from Characters.character import Character
 from Config.curses_config import COLOR_GREEN, COLOR_BLUE, COLOR_RED, COLOR_YELLOW
 from Config.game_config import DAMAGE_LIST_ICON
