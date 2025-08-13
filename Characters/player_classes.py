@@ -229,6 +229,7 @@ class Rogue(Player):
         self.ability_manager.add_ability_by_name('Backstab')
         self.ability_manager.add_ability_by_name('SlidingStrike')
         self.ability_manager.add_ability_by_name('CriticalStrike')
+        self.ability_manager.add_ability_by_name('PoisonStrike')
 
         for name in self.ability_manager.active_abilities:
             self.ability_manager.level_up_ability(name)

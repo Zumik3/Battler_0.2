@@ -72,9 +72,9 @@ class StatusEffect(ABC):
         result = self.update_effect(target)
         
         # Проверяем, закончился ли эффект
-        if self.duration == 0:
-            removal_result = self.remove_effect(target)
-            result.update(removal_result)
+        #if self.duration == 0:
+        #    removal_result = self.remove_effect(target)
+        #    result.update(removal_result)
             
         return result
     

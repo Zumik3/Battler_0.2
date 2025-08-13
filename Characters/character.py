@@ -1,33 +1,47 @@
 # character.py
-from Characters.Abilities.abilities import AbilityManager
+from typing import TYPE_CHECKING, List, Dict, Any, Optional, Union
+
 from Config.game_config import BASE_ENERGY_COST
 from .base_stats import Stats, DerivedStats
 
-# Импортируем менеджер статус-эффектов (только тип для аннотаций)
-from typing import TYPE_CHECKING, List, Any, Optional
 if TYPE_CHECKING:
+    from Characters.Abilities.abilities import AbilityManager
     from Characters.Status_effects.status_manager import StatusEffectManager
-    from Characters.Status_effects.status_effect import StatusEffect
+
 
 class Character:
     """Базовый класс, представляющий персонажа в игре."""
-    def __init__(self, name, role, level=1, is_player=False, can_heal=False):
+
+    def __init__(self, name: str, role: str, level: int = 1, is_player: bool = False, can_heal: bool = False):
         self.name = name
         self.role = role
         self.is_player = is_player
         self.level = level
         self.alive = True
         self.can_heal = can_heal
+        
         # Создаем объекты характеристик
         self.stats = Stats(self)
         self.derived_stats = DerivedStats(self.stats, self.role, self.level)
+        
         # Инициализируем hp и энергию
         self.hp = self.derived_stats.max_hp
         self.energy = self.derived_stats.max_energy
-        # Способности
-        self.ability_manager = AbilityManager()
+        
+        # Способности (ленивый импорт)
+        self._ability_manager = None
+        
         # Статус-эффекты (ленивый импорт)
         self._status_manager = None
+
+    # ==================== Свойства ====================
+    @property
+    def ability_manager(self) -> 'AbilityManager':
+        """Ленивое создание менеджера способностей"""
+        if self._ability_manager is None:
+            from Characters.Abilities.abilities import AbilityManager
+            self._ability_manager = AbilityManager()
+        return self._ability_manager
 
     @property
     def status_manager(self) -> 'StatusEffectManager':
@@ -37,54 +51,43 @@ class Character:
             self._status_manager = StatusEffectManager(self)
         return self._status_manager
 
-    @staticmethod
-    def scale_stats(base_stats, level, growth_rates):
-        """Масштабирует характеристики в зависимости от уровня."""
-        scaled_stats = {}
-        for stat, base_value in base_stats.items():
-            growth_rate = growth_rates.get(stat, 0.05)
-            scaled_stats[stat] = int(base_value * (1 + (level - 1) * growth_rate))
-        return scaled_stats
+    # ==================== Основные методы персонажа ====================
+    def is_alive(self) -> bool:
+        """Проверяет, жив ли персонаж."""
+        return self.alive
 
-    # Добавляем методы для работы со способностями
-    def add_ability(self, name, ability):
-        """Добавляет способность персонажу."""
-        self.ability_manager.add_ability(name, ability)
+    def get_level(self) -> int:
+        """Возвращает уровень персонажа."""
+        return self.level
 
-    def get_available_abilities(self):
-        """Получает список доступных способностей."""
-        return self.ability_manager.get_available_abilities(self)
+    def on_death(self) -> None:
+        """Вызывается при смерти персонажа. Очищает статус-эффекты и выводит сообщение."""
+        # Очищаем все активные статус-эффекты
+        if self._status_manager is not None:
+            self.status_manager.clear_all_effects()
+        
+        # Выводим сообщение о смерти персонажа
+        print(f"{self.name} погибает!")
 
-    def use_ability(self, name, targets, **kwargs):
-        """Использует способность по имени."""
-        return self.ability_manager.use_ability(name, self, targets, **kwargs)
-
-    def update_ability_cooldowns(self):
-        """Обновляет кулдауны способностей в конце раунда."""
-        self.ability_manager.update_cooldowns()
-
-    def take_heal(self, heal_amount):
-        old_hp = self.hp
-        self.hp = min(self.derived_stats.max_hp, self.hp + int(heal_amount))
-        return self.hp - old_hp
-
-    def take_damage(self, damage):
+    # ==================== Боевые методы ====================
+    def take_damage(self, damage: int) -> bool:
         """Наносит урон персонажу, учитывая защиту."""
         self.hp -= damage
         if self.hp <= 0:
             self.hp = 0
-            self.alive = False
+            if self.alive:  # Проверяем, чтобы не вызывать on_death дважды
+                self.alive = False
+                self.on_death()
         return True
 
-    def is_alive(self):
-        """Проверяет, жив ли персонаж."""
-        return self.alive
+    def take_heal(self, heal_amount: int) -> int:
+        """Исцеляет персонажа и возвращает количество восстановленного HP."""
+        old_hp = self.hp
+        self.hp = min(self.derived_stats.max_hp, self.hp + int(heal_amount))
+        return self.hp - old_hp
 
-    def get_level(self):
-        """Возвращает уровень персонажа."""
-        return self.level
-
-    def restore_energy(self, amount=None, percentage=None):
+    # ==================== Энергия ====================
+    def restore_energy(self, amount: Optional[int] = None, percentage: Optional[int] = None) -> None:
         """
         Восстанавливает энергию персонажа.
         :param amount: конкретное количество энергии для восстановления
@@ -101,11 +104,39 @@ class Character:
             # Полное восстановление
             self.energy = self.derived_stats.max_energy
 
-    def spend_energy(self, amount=BASE_ENERGY_COST):
+    def spend_energy(self, amount: int = BASE_ENERGY_COST) -> None:
+        """Тратит энергию персонажа."""
         self.energy -= amount
 
-    # Методы для работы со статус-эффектами
-    def add_status_effect(self, effect) -> dict:
+    # ==================== Статистика ====================
+    @staticmethod
+    def scale_stats(base_stats: Dict[str, int], level: int, growth_rates: Dict[str, float]) -> Dict[str, int]:
+        """Масштабирует характеристики в зависимости от уровня."""
+        scaled_stats = {}
+        for stat, base_value in base_stats.items():
+            growth_rate = growth_rates.get(stat, 0.05)
+            scaled_stats[stat] = int(base_value * (1 + (level - 1) * growth_rate))
+        return scaled_stats
+
+    # ==================== Способности ====================
+    def add_ability(self, name: str, ability: Any) -> None:
+        """Добавляет способность персонажу."""
+        self.ability_manager.add_ability(name, ability)
+
+    def get_available_abilities(self) -> List[str]:
+        """Получает список доступных способностей."""
+        return self.ability_manager.get_available_abilities(self)
+
+    def use_ability(self, name: str, targets: List['Character'], **kwargs) -> Any:
+        """Использует способность по имени."""
+        return self.ability_manager.use_ability(name, self, targets, **kwargs)
+
+    def update_ability_cooldowns(self) -> None:
+        """Обновляет кулдауны способностей в конце раунда."""
+        self.ability_manager.update_cooldowns()
+
+    # ==================== Статус-эффекты ====================
+    def add_status_effect(self, effect: Any) -> Dict[str, str]:
         """Добавляет статус-эффект персонажу."""
         return self.status_manager.add_effect(effect)
 
@@ -113,7 +144,7 @@ class Character:
         """Удаляет статус-эффект по имени."""
         return self.status_manager.remove_effect(effect_name)
 
-    def update_status_effects(self) -> List[dict]:
+    def update_status_effects(self) -> List[Dict[str, str]]:
         """Обновляет все активные статус-эффекты."""
         return self.status_manager.update_effects()
 
@@ -121,6 +152,6 @@ class Character:
         """Проверяет, есть ли у персонажа определенный статус-эффект."""
         return self.status_manager.has_effect(effect_name)
 
-    def get_active_status_effects(self) -> List:
+    def get_active_status_effects(self) -> List[Any]:
         """Возвращает список всех активных статус-эффектов."""
         return self.status_manager.get_all_effects()

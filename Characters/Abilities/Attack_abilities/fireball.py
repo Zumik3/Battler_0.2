@@ -78,9 +78,9 @@ class Fireball(ActiveAbility):
             
             # Добавляем сообщение о уроне
             if mechanics_results['critical_hit']:
-                damage_template: str = f"  {DAMAGE_LIST_ICON} %1 получает %2 КРИТИЧЕСКОГО огненного урона! (%3 заблокировано) 💥"
+                damage_template: str = f"  {DAMAGE_LIST_ICON} %1 получает %2 КРИТИЧЕСКОГО огненного урона (%3 заблокировано) 💥"
             else:
-                damage_template: str = f"  {DAMAGE_LIST_ICON} %1 получает %2 огненного урона. (%3 заблокировано)"
+                damage_template: str = f"  {DAMAGE_LIST_ICON} %1 получает %2 огненного урона (%3 заблокировано)"
                 
             damage_elements: List[tuple] = [(target.name, COLOR_BLUE), 
                                           (str(actual_damage), COLOR_RED), 

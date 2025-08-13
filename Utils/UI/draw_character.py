@@ -349,28 +349,78 @@ class DrawCharacter:
         )
         return position_x + bar_width + AFTER_BAR_SPACING
 
+    # Не забудьте добавить необходимые импорты в начало файла, если их там еще нет
+# import curses
+# from Config.curses_config import get_color_pair, COLOR_GRAY
+
     @staticmethod
     def draw_status_effects(screen, position_y: int, position_x: int, character, max_width: int = None) -> int:
         """
-        Отрисовка активных эффектов (пока — заглушка).
+        Отрисовывает активные статус-эффекты персонажа в виде иконок.
+        
+        Args:
+            screen: Экран curses для отрисовки.
+            position_y: Координата Y для отрисовки.
+            position_x: Координата X для отрисовки.
+            character: Объект персонажа.
+            max_width: Максимальная ширина для отрисовки эффектов.
+            
+        Returns:
+            int: Новая позиция X после отрисовки.
         """
         if max_width is None:
             max_width = STATUS_EFFECTS_MAX_WIDTH
             
         try:
-            active_effects_list = getattr(character, 'active_effects', [])
+            # Получаем список активных эффектов
+            active_effects_list = character.get_active_status_effects()
+            
+            # Если нет активных эффектов, возвращаем текущую позицию X
             if not active_effects_list:
                 return position_x
 
-            effect_names_list = [effect.name[:MAX_EFFECT_NAME_LENGTH] for effect in active_effects_list[:MAX_DISPLAYED_EFFECTS]]
-            effects_text = " | ".join(effect_names_list)
-            if len(effects_text) > max_width:
-                effects_text = effects_text[:max_width - EFFECT_DOTS_LENGTH] + ".."
-
-            screen.addstr(position_y, position_x, effects_text, get_color_pair(COLOR_GRAY) | curses.A_DIM)
+            # Берем максимум 5 первых эффектов
+            displayed_effects = active_effects_list[:5]
+            
+            # Создаем строку с иконками эффектов, разделенными пробелами
+            effect_icons = []
+            current_width = 0
+            
+            for effect in displayed_effects:
+                # Предполагаем, что у эффекта есть атрибут icon или используем первый символ имени
+                icon = getattr(effect, 'icon', effect.name[0] if effect.name else '?')
+                
+                # Проверяем, поместится ли еще один эффект
+                icon_width = len(icon)
+                spacing = 1 if effect_icons else 0  # Пробел перед каждым эффектом, кроме первого
+                
+                if current_width + spacing + icon_width <= max_width:
+                    effect_icons.append(icon)
+                    current_width += spacing + icon_width
+                else:
+                    # Если не помещается, добавляем многоточие
+                    if current_width + 3 <= max_width:
+                        # Заменяем последний эффект на многоточие, если есть место
+                        if effect_icons:
+                            effect_icons[-1] = '..' if len('..') <= max_width - (current_width - len(effect_icons[-1])) else '.'
+                        else:
+                            effect_icons.append('.' * min(3, max_width))
+                    break
+            
+            # Объединяем иконки пробелами
+            effects_text = ' '.join(effect_icons) if effect_icons else ''
+            
+            # Отрисовываем иконки эффектов на экране
+            if effects_text:
+                screen.addstr(position_y, position_x, effects_text)
+            
+            # Возвращаем новую позицию X для следующего элемента интерфейса
             return position_x + len(effects_text) + DEFAULT_SPACING
-        except Exception:
+            
+        except Exception as e:
+            # В случае ошибки возвращаем исходную позицию X
             pass
+            
         return position_x
 
     @classmethod

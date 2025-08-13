@@ -158,6 +158,17 @@ class GameMechanics:
                 results['reduced_damage'] = damage_after_variance
             
             results['final_damage'] = max(0, round(results['reduced_damage']))
+
+            # Проверяем пассивные способности атакующего на наложение статус-эффектов
+            if results['final_damage'] > 0:  # Только если атака попала и нанесла урон
+                # Проверяем способность "Отравляющий удар"
+                poison_ability = attacker.ability_manager.get_passive_ability('poisonstrike')
+                if poison_ability and poison_ability.is_available():
+                    poison_result = poison_ability.apply_effect(attacker, target=target)
+                    #if poison_result.get('poison_applied', False):
+                        # Можно добавить сообщение в результаты для отображения в бою
+                        #results['status_effect_applied'] = True
+                        #results['status_effect_message'] = poison_result.get('message', '')
         
         return results
     

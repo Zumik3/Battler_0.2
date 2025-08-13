@@ -80,11 +80,11 @@ class Volley(Ability):
                 
                 # Добавляем детальное сообщение о уроне по цели
                 if mechanics_results['critical_hit']:
-                    damage_template = "  🔸 %1 получает %2 КРИТИЧЕСКОГО урона! (%3 заблокировано) %4"
+                    damage_template = "  🔸 %1 получает %2 КРИТИЧЕСКОГО урона (%3 заблокировано) %4"
                     crit_text = "💥" if actual_damage > 0 else ""
                     damage_elements = [(target.name, 4), (str(actual_damage), 1), (str(mechanics_results['blocked_damage']), 3), (crit_text, 0)]
                 else:
-                    damage_template = "  🔸 %1 получает %2 урона. (%3 заблокировано)"
+                    damage_template = "  🔸 %1 получает %2 урона (%3 заблокировано)"
                     damage_elements = [(target.name, 4), (str(actual_damage), 1), (str(mechanics_results['blocked_damage']), 3)]
                 
                 result.messages.append(battle_logger.create_log_message(damage_template, damage_elements))

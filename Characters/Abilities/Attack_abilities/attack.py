@@ -77,14 +77,14 @@ class Attack(ActiveAbility):
     def _create_attack_message(self, character, target, damage=0, blocked=0, is_critical=False):
         """Создает сообщение для атаки в зависимости от результата."""
         if is_critical:
-            template = "%1 %2 атакует %3 и наносит %4 КРИТИЧЕСКОГО урона! (%5 заблокировано) %6"
+            template = "%1 %2 атакует %3 и наносит %4 КРИТИЧЕСКОГО урона (%5 заблокировано) %6"
             crit_text = "💥" if damage > 0 else ""
             if character.is_player:
                 elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
             else:
                 elements = [(self.icon, 0), (character.name, 4), (target.name, 2), (str(damage), 1), (str(blocked), 3), (crit_text, 0)]
         else:
-            template = "%1 %2 атакует %3 и наносит %4 урона. (%5 заблокировано)"
+            template = "%1 %2 атакует %3 и наносит %4 урона (%5 заблокировано)"
             if character.is_player:
                 elements = [(self.icon, 0), (character.name, 2), (target.name, 4), (str(damage), 1), (str(blocked), 3)]
             else:
