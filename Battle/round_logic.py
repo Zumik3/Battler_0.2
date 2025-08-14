@@ -2,12 +2,15 @@ import random
 from xxlimited import Str
 from Battle.battle_logger import battle_logger
 from Battle.battle_statistics import CombatActionRecord, get_battle_statistics
+from Characters.Status_effects import status_effect
 from Characters.behavior import decide_action
 
 def battle_round(players, enemies, battle_logger) -> str:
     """Один раунд боя"""
     
-    battle_result = None
+    battle_result: str = "draw"
+    #эффекты срабатывающие в начале раунда
+    pre_round_processing(players, enemies)
 
     # --- Ход игроков ---
     for player in players:
@@ -38,14 +41,29 @@ def battle_round(players, enemies, battle_logger) -> str:
             return battle_result # Возвращаем результат
         
     # Обновляем кулдауны способностей
-    for player in players:
-            player.ability_manager.update_cooldowns()
-    
-    for enemy in enemies:
-            enemy.ability_manager.update_cooldowns()
+    post_round_processing(players, enemies)
     
     # В любом случае завершаем бой без вывода статистики
     return battle_result # Возвращаем результат
+
+def pre_round_processing(players, enemies):
+    for player in players:
+        results = player.status_manager.update_effects()
+        for result in results:
+            log_result(result)
+
+    for enemy in enemies:
+        results = enemy.status_manager.update_effects()
+        for result in results:
+            log_result(result)
+
+def post_round_processing(players, enemies):
+
+    for player in players:
+        player.ability_manager.update_cooldowns()
+    
+    for enemy in enemies:
+        enemy.ability_manager.update_cooldowns()
 
 def log_result(action_result) -> None:
 

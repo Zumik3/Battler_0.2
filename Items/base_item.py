@@ -1,6 +1,6 @@
 # base_item.py - Базовый класс предмета
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Never, Optional
 from abc import ABC, abstractmethod
 
 class BaseItem(ABC):
@@ -19,7 +19,7 @@ class BaseItem(ABC):
     EPIC = 3        # Эпический
     LEGENDARY = 4   # Легендарный
     
-    def __init__(self, name: str, item_type: int, level: int = 1, rarity: int = 0, properties: Dict[str, Any] = None):
+    def __init__(self, name: str, item_type: int, level: int = 1, rarity: int = 0, properties: Dict[str, Any] = {}):
         """
         Инициализация базового предмета.
         

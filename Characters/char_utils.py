@@ -16,10 +16,10 @@ def create_player_team():
     # Пока используем старую систему для совместимости
     # В будущем можно будет выбирать классы
     return [
-        Warrior("Роланд", level=1),
-        Rogue("Стайлс", level=1),
-        Mage("Морган", level=1),
-        Healer("Дамиан", level=1),
+        Warrior("Роланд", level=2),
+        Rogue("Стайлс", level=2),
+        Mage("Морган", level=2),
+        Healer("Дамиан", level=2),
     ]
 
 def get_enemy_count_for_level_group(level_group):

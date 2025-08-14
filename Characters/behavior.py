@@ -187,7 +187,7 @@ def select_ability_based_on_analysis(character, analysis):
             mass_abilities = [a for a in attack_abilities if a.is_mass]
             if mass_abilities:
                 return random.choice(mass_abilities)
-        
+
         return random.choice(attack_abilities)
     
     elif chosen_action == 'rest' and rest_abilities:

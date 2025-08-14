@@ -1,7 +1,7 @@
 #Игровые
 MAX_ROUNDS = 30
 MAX_ROOMS = 10
-BASE_ENERGY_COST = 10
+BASE_ENERGY_COST: int = 10
 BASE_ENERGY_RECOVERY = 30 #процент восстановления энегрии после битвы
 RESTORE_ENERGY_AMOUNT = 25
 
@@ -29,9 +29,14 @@ INPUT_PROMPT = "❱ "
 PROGRESS_BAR_CHARS = "■□"
 PROGRESS_BORDER_CHARS = "[]"
 DAMAGE_LIST_ICON = "🔸"
+EFFECT_LIST_ICON = "▪"
+EFFECT_LIST_ICON2 = "🔹"
 
-PLAYER_NAME_COLUMN_WIDTH = 12  # Для выравнивания баров (6 имя + 6 остальное)
-MONSTER_NAME_COLUMN_WIDTH = 25  # Для выравнивания баров
+SPACES_FIRST_LEVEL = "  "
+SPACES_SECOND_LEVEL = "    "
+
+PLAYER_NAME_COLUMN_WIDTH = 13  # Для выравнивания баров (6 имя + 7 остальное)
+MONSTER_NAME_COLUMN_WIDTH = 27  # Для выравнивания баров
 
 #Служебные
 BASE_DELAY_MS = 400  # Задержка между действиями

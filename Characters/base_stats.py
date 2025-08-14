@@ -22,8 +22,13 @@ class Stats:
         "mage": 1.3,      # Маги используют интеллект
         "healer": 0.6     # Лекари используют интеллект (низкая атака)
     }
-    
+
     def __init__(self, character):
+        
+        self.strength = 0
+        self.dexterity = 0
+        self.intelligence = 0
+        self.constitution = 0
 
         rates = character.BASE_STATS
 

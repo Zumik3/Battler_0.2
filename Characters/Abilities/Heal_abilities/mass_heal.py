@@ -3,7 +3,7 @@
 import random
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
-from Characters.Abilities.abilities import ActiveAbility, AbilityResult
+from Characters.Abilities.ability import ActiveAbility, AbilityResult
 
 class MassHeal(ActiveAbility):
     """Способность: Массовое лечение"""
@@ -14,8 +14,8 @@ class MassHeal(ActiveAbility):
             type=1,
             is_mass=True,
             damage_scale=0.0,
-            cooldown=4,
-            energy_cost=30,
+            cooldown=2,
+            energy_cost=5,
             description="Лечит всех союзников",
             icon="💖"
         )

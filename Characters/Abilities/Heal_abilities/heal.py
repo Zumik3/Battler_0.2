@@ -3,7 +3,7 @@
 import random
 from Battle.battle_logger import battle_logger
 from Battle.base_mechanics import GameMechanics
-from Characters.Abilities.abilities import ActiveAbility, AbilityResult
+from Characters.Abilities.ability import ActiveAbility, AbilityResult
 
 class Heal(ActiveAbility):
     """Способность: Лечение союзника"""
@@ -13,8 +13,8 @@ class Heal(ActiveAbility):
             name="Лечение",
             type=1,
             damage_scale=0.0,
-            cooldown=2,
-            energy_cost=15,
+            cooldown=1,
+            energy_cost=5,
             description="Лечит одного союзника",
             icon="💗"
         )

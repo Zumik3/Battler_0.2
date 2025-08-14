@@ -49,8 +49,8 @@ class ExperienceReward(Reward):
         super().__init__(amount)
         self.type = "exp"
         self.icon = "⭐"
-        self.exp_distribution = {}  # Распределение опыта по персонажам
-        self.level_up_messages = []  # Сообщения о повышении уровня
+        self.exp_distribution: dict = {}  # Распределение опыта по персонажам
+        self.level_up_messages: list = []  # Сообщения о повышении уровня
     
     def _distribute_exp_evenly(self, characters: List, total_exp: int) -> Dict[str, int]:
         """
@@ -110,7 +110,7 @@ class ExperienceReward(Reward):
         
         return distribution
     
-    def apply_reward(self, characters: List = None):
+    def apply_reward(self, characters: List = []):
         """
         Применяет опыт ко всем персонажам и формирует общее сообщение.
         
@@ -164,12 +164,12 @@ class ExperienceReward(Reward):
 class LootReward(Reward):
     """Награда в виде лута (предметов)."""
     
-    def __init__(self, items: List = None):
+    def __init__(self, items: List = []):
         super().__init__(len(items) if items else 0)
         self.type = "loot"
         self.icon = "🧳"
         self.items = items if items else []
-        self.messages = []
+        self.messages: list[tuple[str, int]] = []
     
     def apply_reward(self, character=None):
         """Добавляет предметы в инвентарь."""
@@ -309,7 +309,7 @@ class BattleRewards:
             total_gold += rewards["gold"]
         
         # Создаем объекты наград
-        rewards_list = []
+        rewards_list: List = []
         if total_exp > 0:
             rewards_list.append(ExperienceReward(total_exp))
         if total_gold > 0:
