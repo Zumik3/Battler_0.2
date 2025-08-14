@@ -5,10 +5,10 @@ from Battle.battle_logic import simulate_battle
 from Battle.battle_logger import battle_logger
 from Config.curses_config import BATTLE_DELAY
 from Characters.char_utils import create_enemies
-from Inventory.inventory import get_inventory
 from Utils.UI.Statistics.statistics_window import GlobalStatsWindow
-from Utils.display import display_inventory_screen
-from Utils.UI.Skills.skills_window import display_abilities_screen
+from Utils.UI.inventory_window import InventoryWindow
+
+from Utils.UI.abilities_window import AbilitiesScreenWindow
 
 class CommandHandler:
     def __init__(self, players, enemies, stdscr=None):
@@ -113,29 +113,32 @@ class CommandHandler:
         return True  # Выход из игры
     
     def open_inventory(self):
-        """Открывает инвентарь"""
-        if self.stdscr:  # Проверяем, что экран доступен
+        """Открывает инвентарь."""
+        if self.stdscr: # Проверяем, что экран доступен
             try:
-                display_inventory_screen(self.stdscr, self.players)
-                #inventory = get_inventory()
-                #window = InventoryWindow(self.stdscr, self.players, inventory)
-                #window.run()
+                # Создаем и запускаем окно инвентаря
+                window = InventoryWindow(self.stdscr, self.players)
+                window.run() # Запускаем основной цикл окна
+                # После закрытия окна, управление возвращается в main.py
             except Exception as e:
                 battle_logger.log_system_message(f"❌ Ошибка открытия инвентаря: {str(e)}")
         else:
             battle_logger.log_system_message("❌ Невозможно открыть инвентарь в текущем режиме")
-        return False  # Не выходить из игры
+        return False # Не выходить из игры (возвращаем управление в main loop)
     
     def open_skills(self):
-        """Открывает дерево умений"""
-        if self.stdscr:  # Проверяем, что экран доступен
+        """Открывает дерево умений."""
+        if self.stdscr: # Проверяем, что экран доступен
             try:
-                display_abilities_screen(self.stdscr, self.players)
+                # Создаем и запускаем окно умений
+                window = AbilitiesScreenWindow(self.stdscr, self.players)
+                window.run() # Запускаем основной цикл окна
+                # После закрытия окна, управление возвращается в main.py
             except Exception as e:
                 battle_logger.log_system_message(f"❌ Ошибка открытия умений: {str(e)}")
         else:
             battle_logger.log_system_message("❌ Невозможно открыть умения в текущем режиме")
-        return False  # Не выходить из игры
+        return False # Не выходить из игры (возвращаем управление в main loop)
     
     def open_statistics(self):
         """Открывает тестовое окно"""

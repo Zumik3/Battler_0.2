@@ -8,10 +8,10 @@ if TYPE_CHECKING:
     from Battle.battle_statistics import BattleSummaryRecord, CombatActionRecord, GameTotalsRecord
 
 from Battle.battle_statistics import get_battle_statistics
-from Utils.UI.window import AbstractWindow
+from Utils.UI.window import Window
 from Utils.UI.key_hints import STATISTICS_HINTS
 
-class GlobalStatsWindow(AbstractWindow):
+class GlobalStatsWindow(Window):
     """Окно глобальной статистики"""
     
     def __init__(self, stdscr) -> None:
@@ -137,7 +137,7 @@ class GlobalStatsWindow(AbstractWindow):
         return False
 
 
-class BattleDetailWindow(AbstractWindow):
+class BattleDetailWindow(Window):
     """Окно деталей конкретной битвы"""
     
     def __init__(self, stdscr, battle_record: 'BattleSummaryRecord') -> None:
@@ -257,10 +257,3 @@ class BattleDetailWindow(AbstractWindow):
             return False  # Продолжить работу при ресайзе
         
         return False
-
-
-# Функция для запуска окна глобальной статистики
-def display_global_stats_screen(stdscr) -> None:
-    """Отображает экран глобальной статистики"""
-    window = GlobalStatsWindow(stdscr)
-    window.run()

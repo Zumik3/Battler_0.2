@@ -1,12 +1,34 @@
 # main.py
 import curses
-from Battle.battle_logger import battle_logger
-from Utils.commands import CommandHandler
-from Utils.display import update_display, create_screen_observer
+# Импортируем новый класс точки входа
+from Utils.UI.main_window import MainWindow
+# Импорты для инициализации
 from Config.curses_config import setup_screen
 from Characters.char_utils import create_player_team
 from Inventory.inventory import get_inventory
 
+def main(stdscr):
+    # Базовая настройка экрана
+    setup_screen(stdscr)
+
+    # Данные для отображения
+    players = create_player_team()
+    # enemies инициализируются внутри EventWindow/CommandHandler
+
+    inventory = get_inventory()
+
+    # Создаем и запускаем главное окно
+    # Оно само выполнит всю необходимую инициализацию и запустит EventWindow
+    main_window = MainWindow(stdscr, players)
+    main_window.run()
+
+    # Очистка ресурсов происходит внутри EventWindow.run()
+
+if __name__ == "__main__":
+    curses.wrapper(main)
+
+
+'''
 def main(stdscr):
     # Базовая настройка экрана
     setup_screen(stdscr)
@@ -56,3 +78,4 @@ def main(stdscr):
 
 if __name__ == "__main__":
     curses.wrapper(main)
+'''
