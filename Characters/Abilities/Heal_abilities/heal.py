@@ -13,8 +13,8 @@ class Heal(ActiveAbility):
             name="Лечение",
             type=1,
             damage_scale=0.0,
-            cooldown=2,
-            energy_cost=15,
+            cooldown=1,
+            energy_cost=5,
             description="Лечит одного союзника",
             icon="💗"
         )

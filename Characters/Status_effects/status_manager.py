@@ -78,7 +78,7 @@ class StatusEffectManager:
         """
         for active_effect in self.active_effects:
             if active_effect.__class__ == effect.__class__:
-                return effect
+                return active_effect
         return None
     
     def update_effects(self) -> List[Dict[str, Any]]:

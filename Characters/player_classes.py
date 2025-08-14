@@ -294,6 +294,7 @@ class Mage(Player):
                         class_icon=self.class_icon, class_icon_color=self.class_icon_color)
 
         self.ability_manager.add_ability_by_name('Fireball')
+        self.ability_manager.add_ability_by_name('FireStorm')
 
         for name in self.ability_manager.active_abilities:
             self.ability_manager.level_up_ability(name)

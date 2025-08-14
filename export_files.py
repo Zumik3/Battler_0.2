@@ -1,44 +1,56 @@
+# collect_py_files.py
+
 import os
+from pathlib import Path
 
-# Список требуемых файлов
-required_files = [
-    './Characters/character.py',
-    './Characters/base_mechanics.py',
-    './Battle/battle_logic.py',
-    './Battle/round_logic.py',
-    './Characters/base_stats.py',
-    './Battle/base_mechanics.py',
-    './Characters/Abilities/ability.py'
-]
+# Файлы, которые НЕ нужно включать
+EXCLUDED_FILES = {"collect_py_files.py", "lines_counter.py"}
 
-def export_files_to_single_file(output_filename="project_export.txt"):
-    """Экспортирует содержимое файлов в один текстовый файл"""
-    
-    with open(output_filename, 'w', encoding='utf-8') as output_file:
-        output_file.write("ЭКСПОРТ СОДЕРЖИМОГО ФАЙЛОВ ПРОЕКТА\n")
-        output_file.write("="*60 + "\n\n")
-        
-        for i, file_path in enumerate(required_files, 1):
-            output_file.write(f"[ФАЙЛ {i}/{len(required_files)}]\n")
-            output_file.write(f"ПУТЬ: {file_path}\n")
-            output_file.write("-" * 40 + "\n")
-            
-            if os.path.exists(file_path):
+def should_include(path: Path) -> bool:
+    """
+    Проверяет, должен ли файл быть включён в сборку.
+    Пропускает:
+    - файлы из списка EXCLUDED_FILES
+    - файлы в папках, начинающихся на '.'
+    - любые __pycache__ папки (на всякий случай)
+    """
+    # Проверяем компоненты пути: если любая папка начинается с '.', игнорируем
+    for part in path.parts:
+        if part.startswith(".") and len(part) > 1:  # исключаем '.' как текущую папку
+            return False
+
+    # Исключаем конкретные файлы
+    if path.name in EXCLUDED_FILES:
+        return False
+
+    return True
+
+def main():
+    root_dir = Path.cwd()
+    output_file = root_dir / "output.txt"
+
+    with open(output_file, "w", encoding="utf-8") as outfile:
+        # Ищем все .py файлы рекурсивно
+        for py_file in root_dir.rglob("*.py"):
+            if py_file.is_file() and should_include(py_file):
                 try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        output_file.write(content)
-                        output_file.write("\n")
+                    # Относительный путь
+                    rel_path = py_file.relative_to(root_dir)
+
+                    # Записываем путь
+                    outfile.write(f"- {rel_path}\n")
+
+                    # Читаем и записываем содержимое
+                    with open(py_file, "r", encoding="utf-8") as infile:
+                        content = infile.read()
+                        outfile.write(content)
+
+                    # Отступ между файлами
+                    outfile.write("\n\n")
                 except Exception as e:
-                    output_file.write(f"ОШИБКА ЧТЕНИЯ ФАЙЛА: {e}\n")
-            else:
-                output_file.write("ФАЙЛ НЕ НАЙДЕН\n")
-            
-            output_file.write("-" * 40 + "\n")
-            output_file.write(f"КОНЕЦ ФАЙЛА: {file_path}\n")
-            output_file.write("="*60 + "\n\n")
-    
-    print(f"Экспорт завершен. Файл сохранен как: {output_filename}")
+                    outfile.write(f"[Ошибка чтения файла: {e}]\n\n")
+
+    print(f"✅ Сборка завершена! Все файлы записаны в {output_file}")
 
 if __name__ == "__main__":
-    export_files_to_single_file()
+    main()

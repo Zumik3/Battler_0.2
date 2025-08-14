@@ -14,8 +14,8 @@ class MassHeal(ActiveAbility):
             type=1,
             is_mass=True,
             damage_scale=0.0,
-            cooldown=4,
-            energy_cost=30,
+            cooldown=2,
+            energy_cost=5,
             description="Лечит всех союзников",
             icon="💖"
         )

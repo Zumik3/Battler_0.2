@@ -1,14 +1,18 @@
 # Characters/Abilities/ability_manager.py
 """Система управления способностями персонажа"""
 
+from abc import abstractmethod
 import os
+import random
 import re
 import importlib.util
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, Iterable, List, Any, Optional, TypeVar, Union
 
 from Config.game_config import ABILITIES_PATH
 from Characters.Abilities.ability import ActiveAbility, PassiveAbility, AbilityResult
 
+
+T = TypeVar('T')
 
 # ==================== Загрузчик способностей ====================
 class AbilityLoader:
@@ -275,3 +279,48 @@ class AbilityManager:
         if ability:
             return ability.set_level(level)
         return -1
+
+    @staticmethod
+    def get_random_elements(source_list: Iterable[T], count: int = 1) -> List[T]:
+        """
+        Выбирает случайные элементы из итерируемого объекта.
+        
+        Метод выбирает указанное количество случайных элементов без повторений.
+        Если запрашиваемое количество превышает доступное, возвращает все элементы.
+        
+        Args:
+            source_list: Итерируемый объект с элементами для выбора
+            count: Количество элементов для выбора (default: 1)
+        
+        Returns:
+            Список случайно выбранных элементов без повторений.
+            Длина списка: min(count, len(source_list)) или 0 если source_list пуст.
+            
+        Examples:
+            >>> get_random_elements([1, 2, 3, 4, 5], 3)
+            [2, 5, 1]  # случайный результат
+            
+            >>> get_random_elements(['a', 'b'], 5)
+            ['a', 'b']  # все элементы
+            
+            >>> get_random_elements([], 2)
+            []  # пустой результат
+            
+        Note:
+            - Использует random.sample() для выбора без повторений
+            - Преобразует итерируемый объект в список для работы с random.sample()
+            - Не изменяет исходный итерируемый объект
+        """
+        # Преобразуем итерируемый объект в список
+        source_as_list = list(source_list)
+        
+        # Обработка пустого списка
+        if not source_as_list:
+            return []
+        
+        # Если запрашиваемое количество больше доступного
+        if len(source_as_list) <= count:
+            return source_as_list.copy()
+        
+        # Выбираем случайные элементы
+        return random.sample(source_as_list, count)

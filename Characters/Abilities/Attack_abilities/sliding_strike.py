@@ -10,7 +10,7 @@ from Config.game_config import DAMAGE_LIST_ICON
 from Utils.types import IApplyEffectResult
 
 class SlidingStrike(ActiveAbility):
-    """Способность: Скользящий удар - проходит сквозь врагов, атакуя всех"""
+    """Способность: Скользящий удар - проходит сквозь врагов, атакуя 2х"""
     
     def __init__(self) -> None:
         super().__init__(
@@ -19,13 +19,13 @@ class SlidingStrike(ActiveAbility):
             damage_scale=0.55,  # Умеренный урон за каждого врага
             cooldown=4,
             energy_cost=25,
-            description="Проходит сквозь врагов, атакуя всех на пути",
+            description="Проходит сквозь врагов, атакуя 2х на пути",
             icon="🗡️"
         )
         # Добавляем эффект отравления к списку возможных эффектов способности
         self.add_effect_by_class_name("PoisonEffect")
     
-    def execute(self, character: Character, targets: List[Character], **kwargs: Any) -> AbilityResult:
+    def execute(self, character: 'Character', targets: List[Character], **kwargs: Any) -> AbilityResult:
         """Выполняет скользящий удар по всем врагам."""
         result: AbilityResult = AbilityResult()
         result.ability_type = "sliding_strike"
@@ -39,7 +39,8 @@ class SlidingStrike(ActiveAbility):
             result.reason = 'Нет целей для атаки'
             return result
         
-        result.targets = alive_targets
+        chosen_targets = character.ability_manager.get_random_elements(alive_targets, 2)
+        result.targets = chosen_targets
         
         # Рассчитываем базовый урон
         base_damage: int = int(character.derived_stats.attack * self.damage_scale)
@@ -53,7 +54,7 @@ class SlidingStrike(ActiveAbility):
         total_damage = 0
         target_details = {}
         
-        for target in alive_targets:
+        for target in chosen_targets:
             # Применяем игровые механики для каждой цели
             mechanics_results: Dict[str, Any] = GameMechanics.apply_all_mechanics(self, character, target, base_damage)
             
