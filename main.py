@@ -1,81 +1,72 @@
 # main.py
+"""Главная точка входа в игру. Инициализирует curses и запускает игровой цикл."""
 import curses
-# Импортируем новый класс точки входа
-from Utils.UI.main_window import MainWindow
-# Импорты для инициализации
+import sys
+import os
+
+# - Импорты проекта -
 from Config.curses_config import setup_screen
+# from Utils.display import create_screen_observer # УДАЛЯЕМ, если не используется напрямую в main
 from Characters.char_utils import create_player_team
-from Inventory.inventory import get_inventory
+from Battle.battle_logger import battle_logger
+from Utils.GameState.context import GameContext # Импортируем новый GameContext
 
-def main(stdscr):
-    # Базовая настройка экрана
-    setup_screen(stdscr)
+# Импортируем обработчик команд
+from Utils.command_handler import CommandHandler, command_handler # Импортируем CommandHandler и его глобальную переменную
 
-    # Данные для отображения
-    players = create_player_team()
-    # enemies инициализируются внутри EventWindow/CommandHandler
-
-    inventory = get_inventory()
-
-    # Создаем и запускаем главное окно
-    # Оно само выполнит всю необходимую инициализацию и запустит EventWindow
-    main_window = MainWindow(stdscr, players)
-    main_window.run()
-
-    # Очистка ресурсов происходит внутри EventWindow.run()
-
-if __name__ == "__main__":
-    curses.wrapper(main)
-
-
-'''
-def main(stdscr):
-    # Базовая настройка экрана
-    setup_screen(stdscr)
-    
-    # Данные для отображения
-    players = create_player_team()
-    enemies = []
-
-    # Добавление золота
-    inventory = get_inventory()
-    inventory.add_gold(100)
-
-    # Создаем обработчик команд
-    command_handler = CommandHandler(players, enemies, stdscr)
-    
-    # Создаем и регистрируем наблюдателя
-    screen_observer = create_screen_observer(stdscr, command_handler)
-    battle_logger.add_observer(screen_observer)
-    
-    # Включаем режим получения одиночных нажатий клавиш
-    stdscr.nodelay(False)  # Блокирующий режим
-    stdscr.keypad(True)    # Включаем поддержку специальных клавиш
-
-    # Инициализационные сообщения
-    battle_logger.log_system_message("🎮 Добро пожаловать в автобаттлер!")
-    battle_logger.log_system_message("Нажмите 'H' для помощи или 'Enter' для начала боя")
-    
+def main(stdscr: curses.window) -> None:
+    """Основная функция, запускаемая curses.wrapper.
+    Инициализирует игру и запускает основной цикл через GameContext.
+    """
     try:
-        # Основной цикл
-        while True:
-            # Обновляем экран для отображения
-            update_display(stdscr, command_handler)
-            stdscr.refresh()
-            
-            # Обработка ввода
-            try:
-                key = stdscr.getch()  # Используем getch() вместо get_wch() для лучшей совместимости
-                result = command_handler.process_input(key)
-                if result is True:  # Нужно выйти
-                    break
-            except:
-                continue
-                
+        # 1. Инициализация curses
+        setup_screen(stdscr)
+
+        # 2. Создание начальных данных игры
+        players = create_player_team()
+        if not players:
+            battle_logger.log_system_message("❌ Ошибка: Не удалось создать команду игроков!")
+            return
+        enemies = [] # Враги создаются в EventState
+
+        # 3. Инициализация глобального CommandHandler
+        # Это необходимо для совместимости с screen_observer или других частей кода,
+        # которые полагаются на глобальный экземпляр.
+        global command_handler
+        command_handler = CommandHandler(players, enemies, stdscr)
+
+        # 4. Создание и настройка наблюдателя экрана (если используется)
+        # ВАЖНО: Убедитесь, что screen_observer совместим с новой системой
+        # или отключите его, если он мешает.
+        # screen_observer = create_screen_observer(stdscr, command_handler)
+        # battle_logger.add_observer(screen_observer)
+
+        # 5. Создание и запуск контекста игры
+        game_context = GameContext(stdscr, players, enemies)
+        game_context.run()
+
+        # - Финализация -
+        # Удаление наблюдателя (если был добавлен)
+        # try:
+        #     battle_logger.remove_observer(screen_observer)
+        # except Exception:
+        #     pass
+
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        error_msg = f"💥 Критическая ошибка в main: {e}"
+        try:
+            battle_logger.log_system_message(error_msg)
+        except:
+            print(error_msg, file=sys.stderr)
     finally:
-        # Удаляем наблюдателя при выходе
-        battle_logger.remove_observer(screen_observer)
+        # Финализация (если требуется)
+        # try:
+        #     battle_logger.remove_observer(screen_observer) # Если observer добавлялся глобально
+        # except Exception:
+        #     pass
+        pass
 
 if __name__ == "__main__":
     curses.wrapper(main)
-'''
